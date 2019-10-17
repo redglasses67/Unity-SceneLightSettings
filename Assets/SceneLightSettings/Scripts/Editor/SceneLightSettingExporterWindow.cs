@@ -17,11 +17,12 @@ namespace SceneLightSettings
 #region Window 関連 変数
         private static SceneLightSettingExporterWindow window;
         private static Texture titleIcon;
-        private static readonly Vector2 windowSizeFull     = new Vector2(340, 340);
-        private static readonly Vector2 windowSizeNoExport = new Vector2(340, 268);
-        private static readonly Vector2 windowSizeNoImport = new Vector2(340, 222);
-        private static readonly Vector2 windowSizeEmpty    = new Vector2(340, 150);
+        private static readonly Vector2 windowSizeFull     = new Vector2(340, 378);
+        private static readonly Vector2 windowSizeNoExport = new Vector2(340, 306);
+        private static readonly Vector2 windowSizeNoImport = new Vector2(340, 260);
+        private static readonly Vector2 windowSizeEmpty    = new Vector2(340, 188);
 
+        private static readonly Color titleBgColor         = new Color(0.1f, 0.15f, 0.35f, 0.5f);
         private static readonly Color exportGroupColor     = new Color(1f, 0.8f, 0.9f, 1f);
         private static readonly Color exportButtonColor    = new Color(0.9f, 0.6f, 0.7f, 1f);
         private static readonly Color importGroupColor     = new Color(0.7f, 0.9f, 1f, 1f);
@@ -31,6 +32,7 @@ namespace SceneLightSettings
         private static GUIStyle textStyle;
         private static GUIStyle buttonStyle;
         private static GUIStyle foldoutStyle;
+        private static GUIStyle titleStyle;
 
 
         private static Scene currentScene;
@@ -65,7 +67,6 @@ namespace SceneLightSettings
         public static GUIContent label_ImportFilePath   = new GUIContent();
 
 
-        private static string message_Help;
         private static string message_CreateDir;
         private static string message_NoLightingData;
         private static string message_DoneExpoted;
@@ -218,8 +219,8 @@ namespace SceneLightSettings
 
         private void SetupMessages()
         {
-            label_SceneName.text        = "Scene Name";
-            label_ScenePath.text        = "Scene Path";
+            label_SceneName.text        = "Current Scene Name";
+            label_ScenePath.text        = "Current Scene Path";
             label_LightingData.text     = "Lighting Data";
             label_Lights.text           = "Light Objects";
             label_LightProbes.text      = "LightProbes";
@@ -246,39 +247,41 @@ namespace SceneLightSettings
 
         private void OnGUI()
         {
-            labelStyle             = new GUIStyle();
-            labelStyle.richText    = true;
-            labelStyle.font        = GUI.skin.font;
-            labelStyle.alignment   = TextAnchor.MiddleLeft;
+            labelStyle            = new GUIStyle();
+            labelStyle.richText   = true;
+            labelStyle.font       = GUI.skin.font;
+            labelStyle.alignment  = TextAnchor.MiddleLeft;
 
-            textStyle              = GUI.skin.textField;
-            textStyle.richText     = true;
-            textStyle.alignment    = TextAnchor.MiddleCenter;
+            textStyle             = GUI.skin.textField;
+            textStyle.richText    = true;
+            textStyle.alignment   = TextAnchor.MiddleCenter;
 
-            buttonStyle            = GUI.skin.button;
-            buttonStyle.richText   = true;
-            buttonStyle.alignment  = TextAnchor.MiddleCenter;
+            buttonStyle           = GUI.skin.button;
+            buttonStyle.richText  = true;
+            buttonStyle.alignment = TextAnchor.MiddleCenter;
 
-            var titleStyle         = GUI.skin.GetStyle("IN TitleText");
-            titleStyle.alignment   = TextAnchor.UpperCenter;
+            titleStyle            = GUI.skin.GetStyle("IN TitleText");
+            titleStyle.alignment  = TextAnchor.UpperCenter;
 
             using (new EditorGUILayout.HorizontalScope())
             {
                 using (new EditorGUILayout.VerticalScope())
                 {
+                    EditorGUI.DrawRect(new Rect(0, 0, 340, 30), titleBgColor);
                     // EditorGUI.DropShadowLabel だとRichTextが使えなそうなので、色違いをズラして2個描画させる
-                    EditorGUI.LabelField(new Rect(9, 1, 300, 20), "<size=13><b><color=black>" + label_title + "</color></b></size>", labelStyle);
-                    EditorGUI.LabelField(new Rect(8, 0, 300, 20), "<size=13><b><color=#ffd700>" + label_title + "</color></b></size>", labelStyle);
+                    EditorGUI.LabelField(new Rect(14, 8, 300, 20), "<size=13><b><color=#888888>" + label_title + "</color></b></size>", labelStyle);
+                    EditorGUI.LabelField(new Rect(13, 7, 300, 20), "<size=13><b><color=#444444>" + label_title + "</color></b></size>", labelStyle);
+                    EditorGUI.LabelField(new Rect(12, 6, 300, 20), "<size=13><b><color=#222222>" + label_title + "</color></b></size>", labelStyle);
+                    EditorGUI.LabelField(new Rect(11, 5, 300, 20), "<size=13><b><color=#000000>" + label_title + "</color></b></size>", labelStyle);
+                    EditorGUI.LabelField(new Rect(10, 4, 300, 20), "<size=13><b><color=#ffd700>" + label_title + "</color></b></size>", labelStyle);
                 }
 
                 var lastRect = GUILayoutUtility.GetLastRect();
-                if (GUI.Button(new Rect(lastRect.width - 28, lastRect.y + 6, 20, 20), EditorGUIUtility.IconContent("_Help"), titleStyle))
+                if (GUI.Button(new Rect(lastRect.width - 28, lastRect.y + 10, 20, 20), EditorGUIUtility.IconContent("_Help"), titleStyle))
                 {
-
-                    var helpWindowWidth  = 400;
-                    var helpWindowHeight = 300;
-                    var helpWindowPosX   = (Screen.currentResolution.width - helpWindowWidth) / 2;
-                    var helpWindowPosY   = (Screen.currentResolution.height - helpWindowHeight) / 2;
+                    var helpWindowSize = SceneLightSettingHelpWindow.windowSize;
+                    var helpWindowPosX = (Screen.currentResolution.width - helpWindowSize.x) / 2;
+                    var helpWindowPosY = (Screen.currentResolution.height - helpWindowSize.y) / 2;
 
                     var helpWindow = EditorWindow.GetWindow<SceneLightSettingHelpWindow>(false, "", true);
                     helpWindow.titleContent = new GUIContent("Scene Light Setting Help Window");
@@ -287,30 +290,36 @@ namespace SceneLightSettings
                     {
                         helpWindow.titleContent.image = icon.image;
                     }
-                    helpWindow.position = new Rect(helpWindowPosX, helpWindowPosY, helpWindowWidth, helpWindowHeight);
+                    helpWindow.position = new Rect(helpWindowPosX, helpWindowPosY, helpWindowSize.x, helpWindowSize.y);
+                    helpWindow.maxSize = helpWindow.minSize = helpWindowSize;
                 }
             }
 
-            GUILayout.Space(20);
+            GUILayout.Space(30);
 
-            EditorGUI.indentLevel++;
             currentSceneName = (currentScene != null) ? currentScene.name : "...";
-            EditorGUIUtility.labelWidth = 90;
+
+            EditorGUILayout.LabelField(label_SceneName);
             using (new EditorGUILayout.HorizontalScope())
             {
-                EditorGUILayout.LabelField(label_SceneName, GUILayout.Width(100));
-                EditorGUILayout.LabelField(": " + currentSceneName);
+                EditorGUILayout.Space();
+                EditorGUI.BeginDisabledGroup(true);
+                EditorGUILayout.TextField(currentSceneName, GUILayout.Width(320));
+                EditorGUI.EndDisabledGroup();
+                EditorGUILayout.Space();
             }
+
+            EditorGUILayout.LabelField(label_ScenePath);
             using (new EditorGUILayout.HorizontalScope())
             {
-                EditorGUILayout.LabelField(label_ScenePath, GUILayout.Width(100));
-                EditorGUILayout.LabelField(": " + currentSceneFolderPath);
+                EditorGUILayout.Space();
+                EditorGUI.BeginDisabledGroup(true);
+                EditorGUILayout.TextField(currentSceneFolderPath, GUILayout.Width(320));
+                EditorGUI.EndDisabledGroup();
+                EditorGUILayout.Space();
             }
-            EditorGUIUtility.labelWidth = 0;
-            EditorGUI.indentLevel--;
 
             GUILayout.Space(10);
-
 
             using (new BackgroundColorScope(exportGroupColor))
             {
@@ -320,7 +329,7 @@ namespace SceneLightSettings
                 }
             }
 
-            GUILayout.Space(10);
+            GUILayout.Space(6);
 
             using (new BackgroundColorScope(importGroupColor))
             {
@@ -439,7 +448,7 @@ namespace SceneLightSettings
 
                     using (new BackgroundColorScope(importButtonColor))
                     {
-                        if (GUILayout.Button("...", GUILayout.Width(30) ))
+                        if (GUILayout.Button("<color=#191970><b>...</b></color>", buttonStyle, GUILayout.Width(30)))
                         {
                             var openFolderPath = (currentSceneFolderPath != "") ? currentSceneFolderPath : Application.dataPath;
                             var selectedImportDataPath = EditorUtility.OpenFilePanelWithFilters(
