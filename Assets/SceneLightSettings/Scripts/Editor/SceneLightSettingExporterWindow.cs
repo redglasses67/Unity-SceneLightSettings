@@ -16,6 +16,7 @@ namespace SceneLightSettings
     {
 #region Window 関連 変数
         private static SceneLightSettingExporterWindow window;
+        private static SceneLightSettingHelpWindow helpWindow;
         private static Texture titleIcon;
         private static readonly Vector2 windowSizeFull     = new Vector2(340, 378);
         private static readonly Vector2 windowSizeNoExport = new Vector2(340, 306);
@@ -43,28 +44,28 @@ namespace SceneLightSettings
         private static string exportDataPath;
         private static bool isExportLightingData;
         private static bool isExportLights;
-        private static bool isExportLightProbes;
+        private static bool isExportLightProbeGroups;
         private static bool isExportReflectionProbes;
 
         private static bool isExpandImportLightSetting;
         private static string importDataPath;
         private static bool isImportLightingData;
         private static bool isImportLights;
-        private static bool isImportLightProbes;
+        private static bool isImportLightProbeGroups;
         private static bool isImportReflectionProbes;
 
 #endregion
 
 #region Window & Console Log の表示メッセージ関連
         public const string label_title = "Scene Light Setting Exporter / Importer";
-        public static GUIContent label_SceneName        = new GUIContent();
-        public static GUIContent label_ScenePath        = new GUIContent();
+        private static GUIContent label_SceneName        = new GUIContent();
+        private static GUIContent label_ScenePath        = new GUIContent();
 
-        public static GUIContent label_LightingData     = new GUIContent();
-        public static GUIContent label_Lights           = new GUIContent();
-        public static GUIContent label_LightProbes      = new GUIContent();
-        public static GUIContent label_ReflectionProbes = new GUIContent();
-        public static GUIContent label_ImportFilePath   = new GUIContent();
+        private static GUIContent label_LightingData     = new GUIContent();
+        private static GUIContent label_Lights           = new GUIContent();
+        private static GUIContent label_LightProbeGroups = new GUIContent();
+        private static GUIContent label_ReflectionProbes = new GUIContent();
+        private static GUIContent label_ImportFilePath   = new GUIContent();
 
 
         private static string message_CreateDir;
@@ -78,13 +79,13 @@ namespace SceneLightSettings
         private const string prefsKey_isExpandExportLightSetting = "SceneLightSetting isExpandExportLightSetting";
         private const string prefsKey_isExportLightingData       = "SceneLightSetting isExportLightingData";
         private const string prefsKey_isExportLights             = "SceneLightSetting isExportLights";
-        private const string prefsKey_isExportLightProbes        = "SceneLightSetting isExportLightProbes";
+        private const string prefsKey_isExportLightProbeGroups   = "SceneLightSetting isExportLightProbeGroups";
         private const string prefsKey_isExportReflectionProbes   = "SceneLightSetting isExportReflectionProbes";
 
         private const string prefsKey_isExpandImportLightSetting = "SceneLightSetting isExpandImportLightSetting";
         private const string prefsKey_isImportLightingData       = "SceneLightSetting isImportLightingData";
         private const string prefsKey_isImportLights             = "SceneLightSetting isImportLights";
-        private const string prefsKey_isImportLightProbes        = "SceneLightSetting isImportLightProbes";
+        private const string prefsKey_isImportLightProbeGroups   = "SceneLightSetting isImportLightProbeGroups";
         private const string prefsKey_isImportReflectionProbes   = "SceneLightSetting isImportReflectionProbes";
 
 #endregion
@@ -160,6 +161,12 @@ namespace SceneLightSettings
             EditorSceneManager.sceneOpened     -= SceneOpend;
             EditorSceneManager.sceneSaved      -= GetSceneInfo;
             EditorSceneManager.newSceneCreated -= ResetSceneInfo;
+
+            if (helpWindow != null)
+            {
+                helpWindow.Close();
+                helpWindow = null;
+            }
         }
 
         private void GetEditorIcons()
@@ -192,7 +199,7 @@ namespace SceneLightSettings
             var lightProbeIcon = EditorGUIUtility.IconContent("LightProbeGroup Icon");
             if (lightProbeIcon != null)
             {
-                label_LightProbes.image = lightProbeIcon.image;
+                label_LightProbeGroups.image = lightProbeIcon.image;
             }
 
             var reflectionProbeIcon = EditorGUIUtility.IconContent("ReflectionProbe Icon");
@@ -207,13 +214,13 @@ namespace SceneLightSettings
             isExpandExportLightSetting = EditorPrefs.GetBool(prefsKey_isExpandExportLightSetting ,true);
             isExportLights             = EditorPrefs.GetBool(prefsKey_isExportLights ,true);
             isExportLightingData       = EditorPrefs.GetBool(prefsKey_isExportLightingData ,true);
-            isExportLightProbes        = EditorPrefs.GetBool(prefsKey_isExportLightProbes ,true);
+            isExportLightProbeGroups   = EditorPrefs.GetBool(prefsKey_isExportLightProbeGroups ,true);
             isExportReflectionProbes   = EditorPrefs.GetBool(prefsKey_isExportReflectionProbes ,true);
 
             isExpandImportLightSetting = EditorPrefs.GetBool(prefsKey_isExpandImportLightSetting ,true);
             isImportLightingData       = EditorPrefs.GetBool(prefsKey_isImportLightingData ,true);
             isImportLights             = EditorPrefs.GetBool(prefsKey_isImportLights ,true);
-            isImportLightProbes        = EditorPrefs.GetBool(prefsKey_isImportLightProbes ,true);
+            isImportLightProbeGroups   = EditorPrefs.GetBool(prefsKey_isImportLightProbeGroups ,true);
             isImportReflectionProbes   = EditorPrefs.GetBool(prefsKey_isImportReflectionProbes ,true);
         }
 
@@ -223,7 +230,7 @@ namespace SceneLightSettings
             label_ScenePath.text        = "Current Scene Path";
             label_LightingData.text     = "Lighting Data";
             label_Lights.text           = "Light Objects";
-            label_LightProbes.text      = "LightProbes";
+            label_LightProbeGroups.text = "LightProbeGroups";
             label_ReflectionProbes.text = "ReflectionProbes";
             label_ImportFilePath.text   = "Import File Path";
 
@@ -283,7 +290,7 @@ namespace SceneLightSettings
                     var helpWindowPosX = (Screen.currentResolution.width - helpWindowSize.x) / 2;
                     var helpWindowPosY = (Screen.currentResolution.height - helpWindowSize.y) / 2;
 
-                    var helpWindow = EditorWindow.GetWindow<SceneLightSettingHelpWindow>(false, "", true);
+                    helpWindow = EditorWindow.GetWindow<SceneLightSettingHelpWindow>(false, "", true);
                     helpWindow.titleContent = new GUIContent("Scene Light Setting Help Window");
                     var icon = EditorGUIUtility.IconContent("Lightmapping");
                     if (icon != null)
@@ -340,6 +347,11 @@ namespace SceneLightSettings
             }
         }
 
+        public static void TitleLabelGroup(bool viewHelp)
+        {
+
+        }
+
         private static void ExportLightSettingGroup()
         {
             EditorGUI.BeginChangeCheck();
@@ -362,13 +374,13 @@ namespace SceneLightSettings
                         EditorGUI.BeginChangeCheck();
                         isExportLightingData     = EditorGUILayout.ToggleLeft(label_LightingData, isExportLightingData, GUILayout.Width(180));
                         isExportLights           = EditorGUILayout.ToggleLeft(label_Lights, isExportLights, GUILayout.Width(180));
-                        isExportLightProbes      = EditorGUILayout.ToggleLeft(label_LightProbes, isExportLightProbes, GUILayout.Width(180));
+                        isExportLightProbeGroups = EditorGUILayout.ToggleLeft(label_LightProbeGroups, isExportLightProbeGroups, GUILayout.Width(180));
                         isExportReflectionProbes = EditorGUILayout.ToggleLeft(label_ReflectionProbes, isExportReflectionProbes, GUILayout.Width(180));
                         if (EditorGUI.EndChangeCheck())
                         {
                             EditorPrefs.SetBool(prefsKey_isExportLightingData, isExportLightingData);
                             EditorPrefs.SetBool(prefsKey_isExportLights, isExportLights);
-                            EditorPrefs.SetBool(prefsKey_isExportLightProbes, isExportLightProbes);
+                            EditorPrefs.SetBool(prefsKey_isExportLightProbeGroups, isExportLightProbeGroups);
                             EditorPrefs.SetBool(prefsKey_isExportReflectionProbes, isExportReflectionProbes);
                         }
                     }
@@ -411,13 +423,13 @@ namespace SceneLightSettings
                         EditorGUI.BeginChangeCheck();
                         isImportLightingData     = EditorGUILayout.ToggleLeft(label_LightingData, isImportLightingData, GUILayout.Width(180));
                         isImportLights           = EditorGUILayout.ToggleLeft(label_Lights, isImportLights, GUILayout.Width(180));
-                        isImportLightProbes      = EditorGUILayout.ToggleLeft(label_LightProbes, isImportLightProbes, GUILayout.Width(180));
+                        isImportLightProbeGroups = EditorGUILayout.ToggleLeft(label_LightProbeGroups, isImportLightProbeGroups, GUILayout.Width(180));
                         isImportReflectionProbes = EditorGUILayout.ToggleLeft(label_ReflectionProbes, isImportReflectionProbes, GUILayout.Width(180));
                         if (EditorGUI.EndChangeCheck())
                         {
                             EditorPrefs.SetBool(prefsKey_isImportLightingData, isImportLightingData);
                             EditorPrefs.SetBool(prefsKey_isImportLights, isImportLights);
-                            EditorPrefs.SetBool(prefsKey_isImportLightProbes, isImportLightProbes);
+                            EditorPrefs.SetBool(prefsKey_isImportLightProbeGroups, isImportLightProbeGroups);
                             EditorPrefs.SetBool(prefsKey_isImportReflectionProbes, isImportReflectionProbes);
                         }
                     }
@@ -484,7 +496,7 @@ namespace SceneLightSettings
             var lightingData = SceneLightSettingExporter.GetSceneLightingData(
                                 isExportLightingData,
                                 isExportLights,
-                                isExportLightProbes,
+                                isExportLightProbeGroups,
                                 isExportReflectionProbes);
             if (lightingData == null)
             {
@@ -537,9 +549,9 @@ namespace SceneLightSettings
                 SceneLightSettingExporter.SetSceneLights(lightingData);
             }
 
-            if (isImportLightProbes == true)
+            if (isImportLightProbeGroups == true)
             {
-                SceneLightSettingExporter.SetSceneLightProbes(lightingData);
+                SceneLightSettingExporter.SetSceneLightProbeGroups(lightingData);
             }
 
             if (isImportReflectionProbes == true)

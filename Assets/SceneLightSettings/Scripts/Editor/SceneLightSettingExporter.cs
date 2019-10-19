@@ -45,7 +45,7 @@ namespace SceneLightSettings
         public static SceneLightingData GetSceneLightingData(
             bool isExportLightingData,
             bool isExportLights,
-            bool isExportLightProbes,
+            bool isExportLightProbeGroups,
             bool isExportReflectionProbes)
         {
             var tempEnvironmentData          = new EnvironmentData();
@@ -145,7 +145,7 @@ namespace SceneLightSettings
             exportSLD.lightmappingSettingsData = (isExportLightingData == true) ? tempLightmappingSettingsData : null;
             exportSLD.otherSettingsData        = (isExportLightingData == true) ? tempOtherSettingsData : null;
             exportSLD.sceneLightData           = GetLightDataArray(isExportLights);
-            exportSLD.sceneLightProbeData      = GetLightProbeDataArray(isExportLightProbes);
+            exportSLD.sceneLightProbeData      = GetLightProbeDataArray(isExportLightProbeGroups);
             exportSLD.sceneReflectionProbeData = GetReflectionProbeDataArray(isExportReflectionProbes);
             return exportSLD;
         }
@@ -229,9 +229,9 @@ namespace SceneLightSettings
             return tempSceneLightDataList.ToArray();
         }
 
-        private static LightProbeData[] GetLightProbeDataArray(bool isExportLightProbes)
+        private static LightProbeData[] GetLightProbeDataArray(bool isExportLightProbeGroups)
         {
-            if (isExportLightProbes == false) { return null; }
+            if (isExportLightProbeGroups == false) { return null; }
 
             var tempSceneLightProbeGroupDataList = new List<LightProbeData>();
 
@@ -520,7 +520,7 @@ namespace SceneLightSettings
             }
         }
 
-        public static void SetSceneLightProbes(SceneLightingData importSLD)
+        public static void SetSceneLightProbeGroups(SceneLightingData importSLD)
         {
             var sceneLightProbeDataArray = importSLD.sceneLightProbeData;
             foreach (var sceneLightProbeData in sceneLightProbeDataArray)
