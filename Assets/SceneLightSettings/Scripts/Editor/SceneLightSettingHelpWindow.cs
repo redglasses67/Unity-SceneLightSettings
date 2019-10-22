@@ -5,9 +5,10 @@ namespace SceneLightSettings
 {
     public class SceneLightSettingHelpWindow : EditorWindow
     {
-        public static readonly Vector2 windowSize = new Vector2(330, 280);
+        public static readonly Vector2 windowSize = new Vector2(310, 330);
 
         private static GUIStyle labelStyle;
+        private static GUIStyle messageStyle;
 
         private static string message_Author;
         private static string message_Version;
@@ -19,20 +20,25 @@ namespace SceneLightSettings
             {
                 message_Author  = "作者";
                 message_Version = "バージョン";
-                message_Help    = "このツールは下記のデータを ScriptableObject で出力します.\n" +
+                message_Help    = "このツールは、チェックを付けられた下記のデータを\n" +
+                                    "ScriptableObject でエクスポート/インポートします。\n" +
+                                    "    - シーンの Lighting ウィンドウ内の設定\n" +
+                                    "    - シーン内の Light オブジェクト\n" +
+                                    "    - シーン内の LightProbeGroup オブジェクト\n" +
+                                    "    - シーン内の ReflectionProbe オブジェクト\n" +
+                                    "    - (インポート時のみ) シーン内の\n" +
+                                    "         Light関連オブジェクトを削除するかどうか\n" +
                                     "\n" +
-                                    "    ● シーンの Lighting ウィンドウ内の設定\n" +
-                                    "    ● シーン内の Light オブジェクト\n" +
-                                    "    ● シーン内の LightProbeGroup オブジェクト\n" +
-                                    "    ● シーン内の ReflectionProbe オブジェクト\n" +
+                                    "<size=11>Export</size>\n" +
+                                    "    現在のシーンの保存先のパスに\n" +
+                                    "    SceneLightingData フォルダを作成し、\n" +
+                                    "    そこに SceneLightingData + シーン名 の\n" +
+                                    "    ファイル名で出力されます。\n" +
                                     "\n" +
-                                    "データは,現在のシーンの保存先のパスに\n" +
-                                    "『SceneLightingData』というフォルダを作成し,\n" +
-                                    "SceneLightingData+シーン名 のファイル名で出力されます.\n" +
-                                    "\n" +
-                                    "他のシーンで保存したデータをImportする場合は\n" +
-                                    "出力した ScriptableObject のパスを\n" +
-                                    "『Import File Path』に設定して下さい.";
+                                    "<size=11>Import</size>\n" +
+                                    "    他のシーンで読み込む場合は\n" +
+                                    "    出力した ScriptableObject のパスを\n" +
+                                    "    『Import File Path』に設定して下さい。";
             }
             else
             {
@@ -58,24 +64,48 @@ namespace SceneLightSettings
 
         void OnGUI()
         {
-            labelStyle            = new GUIStyle();
-            labelStyle.richText   = true;
-            labelStyle.font       = GUI.skin.font;
-            labelStyle.alignment  = TextAnchor.MiddleLeft;
-            labelStyle.wordWrap   = true;
+            if (labelStyle == null)
+            {
+                labelStyle           = new GUIStyle();
+                labelStyle.richText  = true;
+                labelStyle.font      = GUI.skin.font;
+            }
 
-            EditorGUILayout.LabelField("<size=13><b>" + SceneLightSettingExporterWindow.label_title + " Help</b></size>", labelStyle);
+            if (messageStyle == null)
+            {
+                messageStyle           = new GUIStyle();
+                messageStyle.richText  = true;
+                messageStyle.font      = GUI.skin.font;
+                messageStyle.alignment = TextAnchor.MiddleLeft;
+                messageStyle.wordWrap  = true;
+            }
 
-            EditorGUIUtility.labelWidth = 80;
-            EditorGUI.indentLevel++;
-            EditorGUILayout.LabelField(message_Author, "redglasses67", GUILayout.Width(200));
-            EditorGUILayout.LabelField(message_Version, "1.0", GUILayout.Width(200));
-            EditorGUI.indentLevel--;
-            EditorGUIUtility.labelWidth = 0;
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                EditorGUILayout.Space();
+                EditorGUILayout.LabelField("<b><size=11>" + SceneLightSettingExporterWindow.label_title + " Help</size></b>", labelStyle, GUILayout.Width(300));
+                EditorGUILayout.Space();
+            }
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                EditorGUILayout.Space();
+                EditorGUILayout.LabelField(message_Author, labelStyle, GUILayout.Width(50));
+                EditorGUI.BeginDisabledGroup(true);
+                EditorGUILayout.TextField("redglasses67", labelStyle, GUILayout.Width(100));
+                EditorGUI.EndDisabledGroup();
+                EditorGUILayout.Space();
+                EditorGUILayout.LabelField(message_Version, labelStyle, GUILayout.Width(60));
+                EditorGUI.BeginDisabledGroup(true);
+                EditorGUILayout.TextField("1.0", labelStyle, GUILayout.Width(40));
+                EditorGUI.EndDisabledGroup();
+                EditorGUILayout.Space();
+                EditorGUIUtility.labelWidth = 0;
+            }
 
             using (new EditorGUILayout.VerticalScope("Box"))
             {
-                EditorGUILayout.LabelField(message_Help, labelStyle);
+                EditorGUILayout.LabelField(message_Help, messageStyle);
             }
 
             using (new EditorGUILayout.HorizontalScope())

@@ -1,14 +1,9 @@
 ﻿using System.IO;
-using System.Reflection;
-using System.Collections.Generic;
 
 using UnityEditor;
 using UnityEngine;
-// using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 using UnityEditor.SceneManagement;
-
-using Object = UnityEngine.Object;
 
 namespace SceneLightSettings
 {
@@ -17,11 +12,10 @@ namespace SceneLightSettings
 #region Window 関連 変数
         private static SceneLightSettingExporterWindow window;
         private static SceneLightSettingHelpWindow helpWindow;
-        private static Texture titleIcon;
-        private static readonly Vector2 windowSizeFull     = new Vector2(340, 378);
-        private static readonly Vector2 windowSizeNoExport = new Vector2(340, 306);
-        private static readonly Vector2 windowSizeNoImport = new Vector2(340, 260);
-        private static readonly Vector2 windowSizeEmpty    = new Vector2(340, 188);
+        private static readonly Vector2 windowSizeFull     = new Vector2(340, 398);
+        private static readonly Vector2 windowSizeNoExport = new Vector2(340, 326);
+        private static readonly Vector2 windowSizeNoImport = new Vector2(340, 280);
+        private static readonly Vector2 windowSizeEmpty    = new Vector2(340, 208);
 
         private static readonly Color titleBgColor         = new Color(0.1f, 0.15f, 0.35f, 0.5f);
         private static readonly Color exportGroupColor     = new Color(1f, 0.8f, 0.9f, 1f);
@@ -53,6 +47,7 @@ namespace SceneLightSettings
         private static bool isImportLights;
         private static bool isImportLightProbeGroups;
         private static bool isImportReflectionProbes;
+        private static bool doDeleteExistingLights;
 
 #endregion
 
@@ -65,6 +60,7 @@ namespace SceneLightSettings
         private static GUIContent label_Lights           = new GUIContent();
         private static GUIContent label_LightProbeGroups = new GUIContent();
         private static GUIContent label_ReflectionProbes = new GUIContent();
+        private static GUIContent label_ExistingLights   = new GUIContent();
         private static GUIContent label_ImportFilePath   = new GUIContent();
 
 
@@ -87,6 +83,7 @@ namespace SceneLightSettings
         private const string prefsKey_isImportLights             = "SceneLightSetting isImportLights";
         private const string prefsKey_isImportLightProbeGroups   = "SceneLightSetting isImportLightProbeGroups";
         private const string prefsKey_isImportReflectionProbes   = "SceneLightSetting isImportReflectionProbes";
+        private const string prefsKey_doDeleteExistingLights     = "SceneLightSetting doDeleteExistingLights";
 
 #endregion
 
@@ -207,6 +204,12 @@ namespace SceneLightSettings
             {
                 label_ReflectionProbes.image = reflectionProbeIcon.image;
             }
+
+            var deleteIcon = EditorGUIUtility.IconContent("CollabDeleted Icon");
+            if (deleteIcon != null)
+            {
+                label_ExistingLights.image = deleteIcon.image;
+            }
         }
 
         private void GetEditorPrefs()
@@ -222,6 +225,7 @@ namespace SceneLightSettings
             isImportLights             = EditorPrefs.GetBool(prefsKey_isImportLights ,true);
             isImportLightProbeGroups   = EditorPrefs.GetBool(prefsKey_isImportLightProbeGroups ,true);
             isImportReflectionProbes   = EditorPrefs.GetBool(prefsKey_isImportReflectionProbes ,true);
+            doDeleteExistingLights     = EditorPrefs.GetBool(prefsKey_doDeleteExistingLights ,true);
         }
 
         private void SetupMessages()
@@ -232,50 +236,37 @@ namespace SceneLightSettings
             label_Lights.text           = "Light Objects";
             label_LightProbeGroups.text = "LightProbeGroups";
             label_ReflectionProbes.text = "ReflectionProbes";
+            label_ExistingLights.text   = "Delete Existing Lights";
             label_ImportFilePath.text   = "Import File Path";
 
 
             message_CreateDir = (Application.systemLanguage == SystemLanguage.Japanese) ?
-                "SceneLightingData フォルダを作成しました.\n\n" : "Created SceneLightingData Folder\n\n";
+                "SceneLightingData フォルダを作成しました." : "Created SceneLightingData Folder";
 
             message_NoLightingData = (Application.systemLanguage == SystemLanguage.Japanese) ?
-                "SceneLightingData が取得できませんでした...\n\n" : "Did not get SceneLightingData\n\n";
+                "SceneLightingData が取得できませんでした..." : "Did not get SceneLightingData";
 
             message_DoneExpoted = (Application.systemLanguage == SystemLanguage.Japanese) ?
-                "SceneLightingData を書き出しました\n\n" : "Created SceneLightingData\n\n";
+                "SceneLightingData を書き出しました" : "Created SceneLightingData";
 
             message_EmptyImportPath = (Application.systemLanguage == SystemLanguage.Japanese) ?
-                "Import File Path が空です.\n\n" : "Import File Path is empty.\n\n";
+                "Import File Path が空です." : "Import File Path is empty.";
 
             message_NoLoadLightingData = (Application.systemLanguage == SystemLanguage.Japanese) ?
-                "SceneLightingData が読み込めませんでした...\n\n" : "Did not load SceneLightingData\n\n";
+                "SceneLightingData が読み込めませんでした..." : "Did not load SceneLightingData";
         }
 
 
         private void OnGUI()
         {
-            labelStyle            = new GUIStyle();
-            labelStyle.richText   = true;
-            labelStyle.font       = GUI.skin.font;
-            labelStyle.alignment  = TextAnchor.MiddleLeft;
-
-            textStyle             = GUI.skin.textField;
-            textStyle.richText    = true;
-            textStyle.alignment   = TextAnchor.MiddleCenter;
-
-            buttonStyle           = GUI.skin.button;
-            buttonStyle.richText  = true;
-            buttonStyle.alignment = TextAnchor.MiddleCenter;
-
-            titleStyle            = GUI.skin.GetStyle("IN TitleText");
-            titleStyle.alignment  = TextAnchor.UpperCenter;
+            GetGUIStyles();
 
             using (new EditorGUILayout.HorizontalScope())
             {
                 using (new EditorGUILayout.VerticalScope())
                 {
                     EditorGUI.DrawRect(new Rect(0, 0, 340, 30), titleBgColor);
-                    // EditorGUI.DropShadowLabel だとRichTextが使えなそうなので、色違いをズラして2個描画させる
+                    // EditorGUI.DropShadowLabel だとRichTextが使えなそうなので、色違いをズラして描画させる
                     EditorGUI.LabelField(new Rect(14, 8, 300, 20), "<size=13><b><color=#888888>" + label_title + "</color></b></size>", labelStyle);
                     EditorGUI.LabelField(new Rect(13, 7, 300, 20), "<size=13><b><color=#444444>" + label_title + "</color></b></size>", labelStyle);
                     EditorGUI.LabelField(new Rect(12, 6, 300, 20), "<size=13><b><color=#222222>" + label_title + "</color></b></size>", labelStyle);
@@ -347,12 +338,38 @@ namespace SceneLightSettings
             }
         }
 
-        public static void TitleLabelGroup(bool viewHelp)
+        private void GetGUIStyles()
         {
+            if (labelStyle == null)
+            {
+                labelStyle            = new GUIStyle();
+                labelStyle.richText   = true;
+                labelStyle.font       = GUI.skin.font;
+                labelStyle.alignment  = TextAnchor.MiddleLeft;
+            }
 
+            if (textStyle == null)
+            {
+                textStyle             = new GUIStyle(GUI.skin.textField);
+                textStyle.richText    = true;
+                textStyle.alignment   = TextAnchor.MiddleCenter;
+            }
+
+            if (buttonStyle == null)
+            {
+                buttonStyle           = new GUIStyle(GUI.skin.button);
+                buttonStyle.richText  = true;
+                buttonStyle.alignment = TextAnchor.MiddleCenter;
+            }
+
+            if (titleStyle == null)
+            {
+                titleStyle            = new GUIStyle(GUI.skin.GetStyle("IN TitleText"));
+                titleStyle.alignment  = TextAnchor.UpperCenter;
+            }
         }
 
-        private static void ExportLightSettingGroup()
+        private void ExportLightSettingGroup()
         {
             EditorGUI.BeginChangeCheck();
             isExpandExportLightSetting = CustomFoldout(isExpandExportLightSetting, "<color=#8b0000><b>Export Light Setting</b></color>");
@@ -401,7 +418,7 @@ namespace SceneLightSettings
             }
         }
 
-        private static void ImportLightSettingGroup()
+        private void ImportLightSettingGroup()
         {
             EditorGUI.BeginChangeCheck();
             isExpandImportLightSetting = CustomFoldout(isExpandImportLightSetting, "<color=#191970><b>Import Light Setting</b></color>");
@@ -425,12 +442,14 @@ namespace SceneLightSettings
                         isImportLights           = EditorGUILayout.ToggleLeft(label_Lights, isImportLights, GUILayout.Width(180));
                         isImportLightProbeGroups = EditorGUILayout.ToggleLeft(label_LightProbeGroups, isImportLightProbeGroups, GUILayout.Width(180));
                         isImportReflectionProbes = EditorGUILayout.ToggleLeft(label_ReflectionProbes, isImportReflectionProbes, GUILayout.Width(180));
+                        doDeleteExistingLights   = EditorGUILayout.ToggleLeft(label_ExistingLights, doDeleteExistingLights, GUILayout.Width(180));
                         if (EditorGUI.EndChangeCheck())
                         {
                             EditorPrefs.SetBool(prefsKey_isImportLightingData, isImportLightingData);
                             EditorPrefs.SetBool(prefsKey_isImportLights, isImportLights);
                             EditorPrefs.SetBool(prefsKey_isImportLightProbeGroups, isImportLightProbeGroups);
                             EditorPrefs.SetBool(prefsKey_isImportReflectionProbes, isImportReflectionProbes);
+                            EditorPrefs.SetBool(prefsKey_doDeleteExistingLights, doDeleteExistingLights);
                         }
                     }
 
@@ -512,7 +531,7 @@ namespace SceneLightSettings
             Debug.Log(message_DoneExpoted + "exportDataPath = " + exportDataPath, lightingData);
             EditorUtility.DisplayDialog(
                 "Scene Light Setting Export / Import",
-                message_DoneExpoted + "exportDataPath\n>>" + exportDataPath,
+                message_DoneExpoted + "\n\nexportDataPath\n>> " + exportDataPath,
                 "OK");
         }
 
@@ -534,9 +553,16 @@ namespace SceneLightSettings
                 Debug.LogWarning(message_NoLoadLightingData + "importDataPath = " + importDataPath);
                 EditorUtility.DisplayDialog(
                     "Scene Light Setting Export / Import",
-                    message_NoLoadLightingData + "importDataPath\n>>" + importDataPath,
+                    message_NoLoadLightingData + "\n\nimportDataPath\n>> " + importDataPath,
                     "OK");
                 return;
+            }
+
+            // doDeleteExistingLights がtrueだったら、
+            // 読み込んだデータを復元する前に既存のライト関係のオブジェクトを削除しておく
+            if (doDeleteExistingLights == true)
+            {
+                SceneLightSettingExporter.DeleteExistingLights();
             }
 
             if (isImportLightingData == true)
@@ -587,7 +613,7 @@ https://anchan828.github.io/editor-manual/web/part1-editorgui.html
 Unity のエディタ拡張で FoldOut をかっこよくするのをやってみた - 凹みTips
 http://tips.hecomi.com/entry/2016/10/15/004144
 */
-        public static bool CustomFoldout(bool foldout, string content)
+        private static bool CustomFoldout(bool foldout, string content)
         {
             var style           = new GUIStyle("ShurikenModuleTitle");
             style.font          = new GUIStyle(EditorStyles.label).font;
