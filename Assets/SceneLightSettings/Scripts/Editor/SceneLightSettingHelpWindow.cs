@@ -5,14 +5,19 @@ namespace SceneLightSettings
 {
     public class SceneLightSettingHelpWindow : EditorWindow
     {
-        public static readonly Vector2 windowSize = new Vector2(310, 330);
+        public static readonly Vector2 windowSize = new Vector2(316, 320);
 
         private static GUIStyle labelStyle;
+        private static GUIStyle textFieldStyle;
         private static GUIStyle messageStyle;
 
         private static string message_Author;
+        private const string authorName = "redglasses67";
         private static string message_Version;
+        private const string version = "1.0";
         private static string message_Help;
+
+        private static Vector2 scrollPos;
 
         private void OnEnable()
         {
@@ -26,38 +31,54 @@ namespace SceneLightSettings
                                     "    - シーン内の Light オブジェクト\n" +
                                     "    - シーン内の LightProbeGroup オブジェクト\n" +
                                     "    - シーン内の ReflectionProbe オブジェクト\n" +
-                                    "    - (インポート時のみ) シーン内の\n" +
+                                    "    - ( インポート時のみ ) シーン内の既存の\n" +
                                     "         Light関連オブジェクトを削除するかどうか\n" +
                                     "\n" +
-                                    "<size=11>Export</size>\n" +
-                                    "    現在のシーンの保存先のパスに\n" +
+                                    "<size=12>Export</size>\n" +
+                                    "    現在開いているシーンの保存先のパスに\n" +
                                     "    SceneLightingData フォルダを作成し、\n" +
-                                    "    そこに SceneLightingData + シーン名 の\n" +
+                                    "    そこに <color=red>SceneLightingData + シーン名</color> の\n" +
                                     "    ファイル名で出力されます。\n" +
                                     "\n" +
-                                    "<size=11>Import</size>\n" +
+                                    "<size=12>Import</size>\n" +
                                     "    他のシーンで読み込む場合は\n" +
                                     "    出力した ScriptableObject のパスを\n" +
-                                    "    『Import File Path』に設定して下さい。";
+                                    "    <color=blue>Import File Path</color> に設定して下さい。\n" +
+                                    "\n" +
+                                    "================================\n" +
+                                    "\n" +
+                                    "更新履歴\n" +
+                                    "    Ver 1.0 リリース";
             }
             else
             {
                 message_Author  = "Author";
                 message_Version = "Version";
-                message_Help    = "This tool exports data below as ScriptableObject.\n" +
+                message_Help    = "This tool export and import \n" +
+                                    "checked data below as ScriptableObject.\n" +
                                     "\n" +
                                     "    - Lighting window settings in the current scene\n" +
-                                    "    - Lights objects in the current scene\n" +
+                                    "    - Light objects in the current scene\n" +
                                     "    - LightProbeGroup objects in the current scene\n" +
                                     "    - ReflectionProbe objects in the current scene\n" +
+                                    "    - ( Import only ) Whether to delete \n" +
+                                    "         existing light objects in the current scene\n" +
                                     "\n" +
-                                    "The data name is 'SceneLightingData' + 'scene name',\n" +
-                                    "and a 'SceneLightingData' folder is created\n" +
-                                    "and exported to that location.\n" +
+                                    "<size=12>Export</size>\n" +
+                                    "    The data name is <color=red>'SceneLightingData' + </color>\n" +
+                                    "    <color=red>'scene name'</color>, and a SceneLightingData folder\n" +
+                                    "    is created in saving path in the current scene.\n" +
+                                    "    Then it exports to that location.\n" +
                                     "\n" +
-                                    "When importing data exported from other scene,\n" +
-                                    "please set the exported ScriptableObject path\n" +
-                                    "to 'Import File Path'.";
+                                    "<size=12>Import</size>\n" +
+                                    "    When importing data exported\n" +
+                                    "    from other scene, please set the exported\n" +
+                                    "    ScriptableObject path to <color=blue>Import File Path</color>.\n" +
+                                    "\n" +
+                                    "================================\n" +
+                                    "\n" +
+                                    "Change Log\n" +
+                                    "    Ver 1.0 release";
             }
         }
 
@@ -69,6 +90,15 @@ namespace SceneLightSettings
                 labelStyle           = new GUIStyle();
                 labelStyle.richText  = true;
                 labelStyle.font      = GUI.skin.font;
+                labelStyle.alignment = TextAnchor.MiddleCenter;
+            }
+
+            if (textFieldStyle == null)
+            {
+                textFieldStyle           = new GUIStyle(GUI.skin.textField);
+                textFieldStyle.richText  = true;
+                textFieldStyle.font      = GUI.skin.font;
+                textFieldStyle.alignment = TextAnchor.MiddleCenter;
             }
 
             if (messageStyle == null)
@@ -90,23 +120,24 @@ namespace SceneLightSettings
             using (new EditorGUILayout.HorizontalScope())
             {
                 EditorGUILayout.Space();
-                EditorGUILayout.LabelField(message_Author, labelStyle, GUILayout.Width(50));
+                EditorGUILayout.LabelField(message_Author, labelStyle, GUILayout.Width(40));
                 EditorGUI.BeginDisabledGroup(true);
-                EditorGUILayout.TextField("redglasses67", labelStyle, GUILayout.Width(100));
+                EditorGUILayout.TextField(authorName, textFieldStyle, GUILayout.Width(100));
                 EditorGUI.EndDisabledGroup();
                 EditorGUILayout.Space();
                 EditorGUILayout.LabelField(message_Version, labelStyle, GUILayout.Width(60));
                 EditorGUI.BeginDisabledGroup(true);
-                EditorGUILayout.TextField("1.0", labelStyle, GUILayout.Width(40));
+                EditorGUILayout.TextField(version, textFieldStyle, GUILayout.Width(40));
                 EditorGUI.EndDisabledGroup();
                 EditorGUILayout.Space();
                 EditorGUIUtility.labelWidth = 0;
             }
 
-            using (new EditorGUILayout.VerticalScope("Box"))
+            scrollPos = EditorGUILayout.BeginScrollView(scrollPos, "Box", GUILayout.Height(240));
             {
                 EditorGUILayout.LabelField(message_Help, messageStyle);
             }
+            EditorGUILayout.EndScrollView();
 
             using (new EditorGUILayout.HorizontalScope())
             {
