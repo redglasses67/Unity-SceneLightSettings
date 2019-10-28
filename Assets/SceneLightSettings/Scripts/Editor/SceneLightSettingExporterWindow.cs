@@ -34,21 +34,20 @@ namespace SceneLightSettings
         private static string currentSceneName;
         private static string currentSceneFolderPath;
 
-        private static bool isExpandExportLightSetting;
+        private static bool isExpandedExportLightSetting;
         private static string exportDataPath;
-        private static bool isExportLightingData;
-        private static bool isExportLights;
-        private static bool isExportLightProbeGroups;
-        private static bool isExportReflectionProbes;
+        private static bool doExportLightingData;
+        private static bool doExportLights;
+        private static bool doExportLightProbeGroups;
+        private static bool doExportReflectionProbes;
 
-        private static bool isExpandImportLightSetting;
+        private static bool isExpandedImportLightSetting;
         private static string importDataPath;
-        private static bool isImportLightingData;
-        private static bool isImportLights;
-        private static bool isImportLightProbeGroups;
-        private static bool isImportReflectionProbes;
+        private static bool doImportLightingData;
+        private static bool doImportLights;
+        private static bool doImportLightProbeGroups;
+        private static bool doImportReflectionProbes;
         private static bool doDeleteExistingLights;
-
 #endregion
 
 #region Window & Console Log の表示メッセージ関連
@@ -72,18 +71,18 @@ namespace SceneLightSettings
 #endregion
 
 #region Window の設定関連
-        private const string prefsKey_isExpandExportLightSetting = "SceneLightSetting isExpandExportLightSetting";
-        private const string prefsKey_isExportLightingData       = "SceneLightSetting isExportLightingData";
-        private const string prefsKey_isExportLights             = "SceneLightSetting isExportLights";
-        private const string prefsKey_isExportLightProbeGroups   = "SceneLightSetting isExportLightProbeGroups";
-        private const string prefsKey_isExportReflectionProbes   = "SceneLightSetting isExportReflectionProbes";
+        private const string prefsKey_isExpandedExportLightSetting = "SceneLightSetting isExpandedExportLightSetting";
+        private const string prefsKey_doExportLightingData         = "SceneLightSetting doExportLightingData";
+        private const string prefsKey_doExportLights               = "SceneLightSetting doExportLights";
+        private const string prefsKey_doExportLightProbeGroups     = "SceneLightSetting doExportLightProbeGroups";
+        private const string prefsKey_doExportReflectionProbes     = "SceneLightSetting doExportReflectionProbes";
 
-        private const string prefsKey_isExpandImportLightSetting = "SceneLightSetting isExpandImportLightSetting";
-        private const string prefsKey_isImportLightingData       = "SceneLightSetting isImportLightingData";
-        private const string prefsKey_isImportLights             = "SceneLightSetting isImportLights";
-        private const string prefsKey_isImportLightProbeGroups   = "SceneLightSetting isImportLightProbeGroups";
-        private const string prefsKey_isImportReflectionProbes   = "SceneLightSetting isImportReflectionProbes";
-        private const string prefsKey_doDeleteExistingLights     = "SceneLightSetting doDeleteExistingLights";
+        private const string prefsKey_isExpandedImportLightSetting = "SceneLightSetting isExpandedImportLightSetting";
+        private const string prefsKey_doImportLightingData         = "SceneLightSetting doImportLightingData";
+        private const string prefsKey_doImportLights               = "SceneLightSetting doImportLights";
+        private const string prefsKey_doImportLightProbeGroups     = "SceneLightSetting doImportLightProbeGroups";
+        private const string prefsKey_doImportReflectionProbes     = "SceneLightSetting doImportReflectionProbes";
+        private const string prefsKey_doDeleteExistingLights       = "SceneLightSetting doDeleteExistingLights";
 
 #endregion
 
@@ -104,15 +103,15 @@ namespace SceneLightSettings
 
         private static void ReseizeWindow()
         {
-            if (isExpandExportLightSetting == false && isExpandImportLightSetting == false)
+            if (isExpandedExportLightSetting == false && isExpandedImportLightSetting == false)
             {
                 window.maxSize = window.minSize = windowSizeEmpty;
             }
-            else if (isExpandImportLightSetting == false)
+            else if (isExpandedImportLightSetting == false)
             {
                 window.maxSize = window.minSize = windowSizeNoImport;
             }
-            else if (isExpandExportLightSetting == false)
+            else if (isExpandedExportLightSetting == false)
             {
                 window.maxSize = window.minSize = windowSizeNoExport;
             }
@@ -214,18 +213,18 @@ namespace SceneLightSettings
 
         private void GetEditorPrefs()
         {
-            isExpandExportLightSetting = EditorPrefs.GetBool(prefsKey_isExpandExportLightSetting ,true);
-            isExportLights             = EditorPrefs.GetBool(prefsKey_isExportLights ,true);
-            isExportLightingData       = EditorPrefs.GetBool(prefsKey_isExportLightingData ,true);
-            isExportLightProbeGroups   = EditorPrefs.GetBool(prefsKey_isExportLightProbeGroups ,true);
-            isExportReflectionProbes   = EditorPrefs.GetBool(prefsKey_isExportReflectionProbes ,true);
+            isExpandedExportLightSetting = EditorPrefs.GetBool(prefsKey_isExpandedExportLightSetting ,true);
+            doExportLights               = EditorPrefs.GetBool(prefsKey_doExportLights ,true);
+            doExportLightingData         = EditorPrefs.GetBool(prefsKey_doExportLightingData ,true);
+            doExportLightProbeGroups     = EditorPrefs.GetBool(prefsKey_doExportLightProbeGroups ,true);
+            doExportReflectionProbes     = EditorPrefs.GetBool(prefsKey_doExportReflectionProbes ,true);
 
-            isExpandImportLightSetting = EditorPrefs.GetBool(prefsKey_isExpandImportLightSetting ,true);
-            isImportLightingData       = EditorPrefs.GetBool(prefsKey_isImportLightingData ,true);
-            isImportLights             = EditorPrefs.GetBool(prefsKey_isImportLights ,true);
-            isImportLightProbeGroups   = EditorPrefs.GetBool(prefsKey_isImportLightProbeGroups ,true);
-            isImportReflectionProbes   = EditorPrefs.GetBool(prefsKey_isImportReflectionProbes ,true);
-            doDeleteExistingLights     = EditorPrefs.GetBool(prefsKey_doDeleteExistingLights ,true);
+            isExpandedImportLightSetting = EditorPrefs.GetBool(prefsKey_isExpandedImportLightSetting ,true);
+            doImportLightingData         = EditorPrefs.GetBool(prefsKey_doImportLightingData ,true);
+            doImportLights               = EditorPrefs.GetBool(prefsKey_doImportLights ,true);
+            doImportLightProbeGroups     = EditorPrefs.GetBool(prefsKey_doImportLightProbeGroups ,true);
+            doImportReflectionProbes     = EditorPrefs.GetBool(prefsKey_doImportReflectionProbes ,true);
+            doDeleteExistingLights       = EditorPrefs.GetBool(prefsKey_doDeleteExistingLights ,true);
         }
 
         private void SetupMessages()
@@ -372,15 +371,15 @@ namespace SceneLightSettings
         private void ExportLightSettingGroup()
         {
             EditorGUI.BeginChangeCheck();
-            isExpandExportLightSetting = CustomFoldout(isExpandExportLightSetting, "<color=#8b0000><b>Export Light Setting</b></color>");
+            isExpandedExportLightSetting = CustomFoldout(isExpandedExportLightSetting, "<color=#8b0000><b>Export Light Setting</b></color>");
             if (EditorGUI.EndChangeCheck())
             {
-                EditorPrefs.SetBool(prefsKey_isExpandExportLightSetting, isExpandExportLightSetting);
+                EditorPrefs.SetBool(prefsKey_isExpandedExportLightSetting, isExpandedExportLightSetting);
                 ReseizeWindow();
                 GUI.changed = false;
             }
 
-            if (isExpandExportLightSetting == true)
+            if (isExpandedExportLightSetting == true)
             {
                 EditorGUI.indentLevel++;
 
@@ -389,16 +388,16 @@ namespace SceneLightSettings
                     using (new EditorGUILayout.VerticalScope())
                     {
                         EditorGUI.BeginChangeCheck();
-                        isExportLightingData     = EditorGUILayout.ToggleLeft(label_LightingData, isExportLightingData, GUILayout.Width(180));
-                        isExportLights           = EditorGUILayout.ToggleLeft(label_Lights, isExportLights, GUILayout.Width(180));
-                        isExportLightProbeGroups = EditorGUILayout.ToggleLeft(label_LightProbeGroups, isExportLightProbeGroups, GUILayout.Width(180));
-                        isExportReflectionProbes = EditorGUILayout.ToggleLeft(label_ReflectionProbes, isExportReflectionProbes, GUILayout.Width(180));
+                        doExportLightingData     = EditorGUILayout.ToggleLeft(label_LightingData, doExportLightingData, GUILayout.Width(180));
+                        doExportLights           = EditorGUILayout.ToggleLeft(label_Lights, doExportLights, GUILayout.Width(180));
+                        doExportLightProbeGroups = EditorGUILayout.ToggleLeft(label_LightProbeGroups, doExportLightProbeGroups, GUILayout.Width(180));
+                        doExportReflectionProbes = EditorGUILayout.ToggleLeft(label_ReflectionProbes, doExportReflectionProbes, GUILayout.Width(180));
                         if (EditorGUI.EndChangeCheck())
                         {
-                            EditorPrefs.SetBool(prefsKey_isExportLightingData, isExportLightingData);
-                            EditorPrefs.SetBool(prefsKey_isExportLights, isExportLights);
-                            EditorPrefs.SetBool(prefsKey_isExportLightProbeGroups, isExportLightProbeGroups);
-                            EditorPrefs.SetBool(prefsKey_isExportReflectionProbes, isExportReflectionProbes);
+                            EditorPrefs.SetBool(prefsKey_doExportLightingData, doExportLightingData);
+                            EditorPrefs.SetBool(prefsKey_doExportLights, doExportLights);
+                            EditorPrefs.SetBool(prefsKey_doExportLightProbeGroups, doExportLightProbeGroups);
+                            EditorPrefs.SetBool(prefsKey_doExportReflectionProbes, doExportReflectionProbes);
                         }
                     }
 
@@ -421,15 +420,15 @@ namespace SceneLightSettings
         private void ImportLightSettingGroup()
         {
             EditorGUI.BeginChangeCheck();
-            isExpandImportLightSetting = CustomFoldout(isExpandImportLightSetting, "<color=#191970><b>Import Light Setting</b></color>");
+            isExpandedImportLightSetting = CustomFoldout(isExpandedImportLightSetting, "<color=#191970><b>Import Light Setting</b></color>");
             if (EditorGUI.EndChangeCheck())
             {
-                EditorPrefs.SetBool(prefsKey_isExpandImportLightSetting, isExpandImportLightSetting);
+                EditorPrefs.SetBool(prefsKey_isExpandedImportLightSetting, isExpandedImportLightSetting);
                 ReseizeWindow();
                 GUI.changed = false;
             }
 
-            if (isExpandImportLightSetting == true)
+            if (isExpandedImportLightSetting == true)
             {
                 EditorGUI.indentLevel++;
 
@@ -438,17 +437,17 @@ namespace SceneLightSettings
                     using (new EditorGUILayout.VerticalScope())
                     {
                         EditorGUI.BeginChangeCheck();
-                        isImportLightingData     = EditorGUILayout.ToggleLeft(label_LightingData, isImportLightingData, GUILayout.Width(180));
-                        isImportLights           = EditorGUILayout.ToggleLeft(label_Lights, isImportLights, GUILayout.Width(180));
-                        isImportLightProbeGroups = EditorGUILayout.ToggleLeft(label_LightProbeGroups, isImportLightProbeGroups, GUILayout.Width(180));
-                        isImportReflectionProbes = EditorGUILayout.ToggleLeft(label_ReflectionProbes, isImportReflectionProbes, GUILayout.Width(180));
+                        doImportLightingData     = EditorGUILayout.ToggleLeft(label_LightingData, doImportLightingData, GUILayout.Width(180));
+                        doImportLights           = EditorGUILayout.ToggleLeft(label_Lights, doImportLights, GUILayout.Width(180));
+                        doImportLightProbeGroups = EditorGUILayout.ToggleLeft(label_LightProbeGroups, doImportLightProbeGroups, GUILayout.Width(180));
+                        doImportReflectionProbes = EditorGUILayout.ToggleLeft(label_ReflectionProbes, doImportReflectionProbes, GUILayout.Width(180));
                         doDeleteExistingLights   = EditorGUILayout.ToggleLeft(label_ExistingLights, doDeleteExistingLights, GUILayout.Width(180));
                         if (EditorGUI.EndChangeCheck())
                         {
-                            EditorPrefs.SetBool(prefsKey_isImportLightingData, isImportLightingData);
-                            EditorPrefs.SetBool(prefsKey_isImportLights, isImportLights);
-                            EditorPrefs.SetBool(prefsKey_isImportLightProbeGroups, isImportLightProbeGroups);
-                            EditorPrefs.SetBool(prefsKey_isImportReflectionProbes, isImportReflectionProbes);
+                            EditorPrefs.SetBool(prefsKey_doImportLightingData, doImportLightingData);
+                            EditorPrefs.SetBool(prefsKey_doImportLights, doImportLights);
+                            EditorPrefs.SetBool(prefsKey_doImportLightProbeGroups, doImportLightProbeGroups);
+                            EditorPrefs.SetBool(prefsKey_doImportReflectionProbes, doImportReflectionProbes);
                             EditorPrefs.SetBool(prefsKey_doDeleteExistingLights, doDeleteExistingLights);
                         }
                     }
@@ -513,10 +512,10 @@ namespace SceneLightSettings
             exportDataPath = AssetDatabase.GenerateUniqueAssetPath(exportDataPath);
 
             var lightingData = SceneLightSettingExporter.GetSceneLightingData(
-                                isExportLightingData,
-                                isExportLights,
-                                isExportLightProbeGroups,
-                                isExportReflectionProbes);
+                                doExportLightingData,
+                                doExportLights,
+                                doExportLightProbeGroups,
+                                doExportReflectionProbes);
             if (lightingData == null)
             {
                 Debug.LogWarning(message_NoLightingData);
@@ -562,25 +561,25 @@ namespace SceneLightSettings
             // 読み込んだデータを復元する前に既存のライト関係のオブジェクトを削除しておく
             if (doDeleteExistingLights == true)
             {
-                SceneLightSettingExporter.DeleteExistingLights();
+                SceneLightSettingExporter.DeleteExistingLights(doImportLights, doImportLightProbeGroups, doImportReflectionProbes);
             }
 
-            if (isImportLightingData == true)
+            if (doImportLightingData == true)
             {
                 SceneLightSettingExporter.SetSceneLightingData(lightingData);
             }
 
-            if (isImportLights == true)
+            if (doImportLights == true)
             {
                 SceneLightSettingExporter.SetSceneLights(lightingData);
             }
 
-            if (isImportLightProbeGroups == true)
+            if (doImportLightProbeGroups == true)
             {
                 SceneLightSettingExporter.SetSceneLightProbeGroups(lightingData);
             }
 
-            if (isImportReflectionProbes == true)
+            if (doImportReflectionProbes == true)
             {
                 SceneLightSettingExporter.SetSceneReflectionProbes(lightingData);
             }

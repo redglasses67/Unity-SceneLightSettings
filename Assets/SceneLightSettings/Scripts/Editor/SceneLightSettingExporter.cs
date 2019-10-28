@@ -570,24 +570,33 @@ namespace SceneLightSettings
         /// <summary>
         /// シーン内の Light, LightProbeGroup, ReflectionProbe のオブジェクトを削除する
         /// </summary>
-        public static void DeleteExistingLights()
+        public static void DeleteExistingLights(bool doDeleteLights, bool doDeleteLightProbeGroups, bool doDeleteReflectionProbes)
         {
-            var sceneLights           = GameObject.FindObjectsOfType(typeof(Light)) as Light[];
-            for (var a = 0; a < sceneLights.Length; a++)
+            if (doDeleteLights == true)
             {
-                Undo.DestroyObjectImmediate(sceneLights[a].gameObject);
+                var sceneLights = GameObject.FindObjectsOfType(typeof(Light)) as Light[];
+                for (var a = 0; a < sceneLights.Length; a++)
+                {
+                    Undo.DestroyObjectImmediate(sceneLights[a].gameObject);
+                }
             }
 
-            var sceneLightProbeGroups = GameObject.FindObjectsOfType(typeof(LightProbeGroup)) as LightProbeGroup[];
-            foreach (var sceneLightProbeGroup in sceneLightProbeGroups)
+            if (doDeleteLightProbeGroups == true)
             {
-                Undo.DestroyObjectImmediate(sceneLightProbeGroup.gameObject);
+                var sceneLightProbeGroups = GameObject.FindObjectsOfType(typeof(LightProbeGroup)) as LightProbeGroup[];
+                foreach (var sceneLightProbeGroup in sceneLightProbeGroups)
+                {
+                    Undo.DestroyObjectImmediate(sceneLightProbeGroup.gameObject);
+                }
             }
 
-            var sceneReflectionProbes = GameObject.FindObjectsOfType(typeof(ReflectionProbe)) as ReflectionProbe[];
-            foreach (var sceneReflectionProbe in sceneReflectionProbes)
+            if (doDeleteReflectionProbes == true)
             {
-                Undo.DestroyObjectImmediate(sceneReflectionProbe.gameObject);
+                var sceneReflectionProbes = GameObject.FindObjectsOfType(typeof(ReflectionProbe)) as ReflectionProbe[];
+                foreach (var sceneReflectionProbe in sceneReflectionProbes)
+                {
+                    Undo.DestroyObjectImmediate(sceneReflectionProbe.gameObject);
+                }
             }
         }
     }
