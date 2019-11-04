@@ -6,19 +6,54 @@ using UnityEngine;
 
 using Object = UnityEngine.Object;
 
+using System.IO;
 namespace SceneLightSettings
 {
     public class SceneLightSettingExporter
     {
-        private static readonly string prop_EnvLightMode      = "m_GISettings.m_EnvironmentLightingMode";
-        private static readonly string prop_FG                = "m_LightmapEditorSettings.m_FinalGather";
-        private static readonly string prop_FGRayCount        = "m_LightmapEditorSettings.m_FinalGatherRayCount";
-        private static readonly string prop_FGFilter          = "m_LightmapEditorSettings.m_FinalGatherFiltering";
-        private static readonly string prop_PVREnvMIS         = "m_LightmapEditorSettings.m_PVREnvironmentMIS";
-        private static readonly string prop_PVREnvSampleCount = "m_LightmapEditorSettings.m_PVREnvironmentSampleCount";  
-        private static readonly string prop_LightParam        = "m_LightmapEditorSettings.m_LightmapParameters";
-        private static readonly string prop_HaloTex           = "m_HaloTexture";
-        private static readonly string prop_SpotCookie        = "m_SpotCookie";
+        private static readonly string prop_MixedBakeMode          = "m_LightmapEditorSettings.m_MixedBakeMode";
+        private static readonly string prop_EnvLightMode           = "m_GISettings.m_EnvironmentLightingMode";
+        private static readonly string prop_FG                     = "m_LightmapEditorSettings.m_FinalGather";
+        private static readonly string prop_FGRayCount             = "m_LightmapEditorSettings.m_FinalGatherRayCount";
+        private static readonly string prop_FGFilter               = "m_LightmapEditorSettings.m_FinalGatherFiltering";
+        private static readonly string prop_PVRCulling             = "m_LightmapEditorSettings.m_PVRCulling";
+#if UNITY_2019_1_OR_NEWER
+        private static readonly string prop_PVREnvMIS              = "m_LightmapEditorSettings.m_PVREnvironmentMIS";
+#endif
+
+#if !UNITY_2018_2_OR_NEWER
+        private static readonly string prop_PVRDirectSamples       = "m_LightmapEditorSettings.m_PVRDirectSampleCount";
+        private static readonly string prop_PVRIndirectSamples     = "m_LightmapEditorSettings.m_PVRSampleCount";
+#endif
+        private static readonly string prop_PVRBounce              = "m_LightmapEditorSettings.m_PVRBounces";
+        private static readonly string prop_PVRFilteringMode       = "m_LightmapEditorSettings.m_PVRFilteringMode";
+
+#if !UNITY_2018_2_OR_NEWER
+        private static readonly string prop_PVRGaussRDirect        = "m_LightmapEditorSettings.m_PVRFilteringGaussRadiusDirect";
+        private static readonly string prop_PVRGaussRIndirect      = "m_LightmapEditorSettings.m_PVRFilteringGaussRadiusIndirect";
+        private static readonly string prop_PVRGaussRAO            = "m_LightmapEditorSettings.m_PVRFilteringGaussRadiusAO";
+        private static readonly string prop_PVRAtrousDirectSigma   = "m_LightmapEditorSettings.m_PVRFilteringAtrousPositionSigmaDirect";
+        private static readonly string prop_PVRAtrousIndirectSigma = "m_LightmapEditorSettings.m_PVRFilteringAtrousPositionSigmaIndirect";
+        private static readonly string prop_PVRAtrousAOSigma       = "m_LightmapEditorSettings.m_PVRFilteringAtrousPositionSigmaAO";
+#endif
+
+#if UNITY_2019_1_OR_NEWER
+        private static readonly string prop_PVREnvSampleCount      = "m_LightmapEditorSettings.m_PVREnvironmentSampleCount";
+        private static readonly string prop_PVREnvRefPointCount    = "m_LightmapEditorSettings.m_PVREnvironmentReferencePointCount";
+#endif
+        private static readonly string prop_LightParam             = "m_LightmapEditorSettings.m_LightmapParameters";
+
+#if UNITY_2019_1_OR_NEWER
+        private static readonly string prop_ExportTrainingData     = "m_LightmapEditorSettings.m_ExportTrainingData";
+        private static readonly string prop_ExtractAO              = "m_LightmapEditorSettings.m_ExtractAmbientOcclusion";
+#endif
+
+// 2019.2 でなくなってそうなのでパス
+// #if UNITY_2018_1_OR_NEWER
+//         private static readonly string prop_UseRadianceAmbProbe    = "m_UseRadianceAmbientProbe";
+// #endif
+        private static readonly string prop_HaloTex                = "m_HaloTexture";
+        private static readonly string prop_SpotCookie             = "m_SpotCookie";
 
         private static readonly BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Static;
 
@@ -52,6 +87,15 @@ namespace SceneLightSettings
             var so_lightmapSettings          = GetSerializedLightmapSettingsObject();
             var so_renderSettings            = GetSerializedRenderSettingsObject();
 
+            var sp_lightmapSettingsTxtPath = Application.dataPath + "/sp_lightmapSettings.txt";
+            var sw_lightmapSettings        = new StreamWriter (sp_lightmapSettingsTxtPath, false, System.Text.Encoding.GetEncoding ("shift_jis"));
+            CheckSerializedProperty.GetSerializedProperties(so_lightmapSettings, ref sw_lightmapSettings);
+            sw_lightmapSettings.Close ();
+            var sp_renderSettingsTxtPath = Application.dataPath + "/sp_renderSettings.txt";
+            var sw_renderSettings        = new StreamWriter (sp_renderSettingsTxtPath, false, System.Text.Encoding.GetEncoding ("shift_jis"));
+            CheckSerializedProperty.GetSerializedProperties(so_renderSettings, ref sw_renderSettings);
+            sw_renderSettings.Close ();
+
             // Environment ========================================================================
             tempEnvironmentData.skyboxMaterial               = RenderSettings.skybox;
             tempEnvironmentData.sunSource                    = RenderSettings.sun;
@@ -73,7 +117,11 @@ namespace SceneLightSettings
             // Realtime & Mixed Lighting ==========================================================
             tempLightingData.realtimeGlobalIllumination  = Lightmapping.realtimeGI;
             tempLightingData.bakedGlobalIllumination     = Lightmapping.bakedGI;
+#if UNITY_2018_2_OR_NEWER
             tempLightingData.lightingMode                = LightmapEditorSettings.mixedBakeMode;
+#else
+            tempLightingData.lightingMode                = (MixedLightingMode)so_lightmapSettings.FindProperty(prop_MixedBakeMode).intValue;
+#endif
             tempLightingData.realtimeShadowColor         = RenderSettings.subtractiveShadowColor;
 
 
@@ -82,31 +130,91 @@ namespace SceneLightSettings
             tempLightmappingSettingsData.finalGather                 = so_lightmapSettings.FindProperty(prop_FG).ToNullableBool();
             tempLightmappingSettingsData.finalGatherRayCount         = so_lightmapSettings.FindProperty(prop_FGRayCount).ToNullableInt();
             tempLightmappingSettingsData.finalGatherDenoising        = so_lightmapSettings.FindProperty(prop_FGFilter).ToNullableBool();
+#if UNITY_2018_2_OR_NEWER
             tempLightmappingSettingsData.prioritizeView              = LightmapEditorSettings.prioritizeView;
+#else
+            tempLightmappingSettingsData.prioritizeView              = so_lightmapSettings.FindProperty(prop_PVRCulling).boolValue;
+#endif
+
+#if UNITY_2019_1_OR_NEWER
             tempLightmappingSettingsData.multipleImportanceSampling  = so_lightmapSettings.FindProperty(prop_PVREnvMIS).ToNullableBool();
+#endif
+
+#if UNITY_2018_2_OR_NEWER
             tempLightmappingSettingsData.directSamples               = LightmapEditorSettings.directSampleCount;
             tempLightmappingSettingsData.indirectSamples             = LightmapEditorSettings.indirectSampleCount;
+#else
+            tempLightmappingSettingsData.directSamples               = so_lightmapSettings.FindProperty(prop_PVRDirectSamples).intValue;
+            tempLightmappingSettingsData.indirectSamples             = so_lightmapSettings.FindProperty(prop_PVRIndirectSamples).intValue;
+#endif
+
+#if UNITY_2019_1_OR_NEWER
             tempLightmappingSettingsData.environmentSamples          = so_lightmapSettings.FindProperty(prop_PVREnvSampleCount).ToNullableInt();
+#endif
+
+#if UNITY_2018_1_OR_NEWER
             tempLightmappingSettingsData.bounces                     = LightmapEditorSettings.bounces;
+#else
+            tempLightmappingSettingsData.bounces                     = so_lightmapSettings.FindProperty(prop_PVRBounce).intValue;
+#endif
+
+#if UNITY_2018_2_OR_NEWER
             tempLightmappingSettingsData.filtering                   = LightmapEditorSettings.filteringMode;
+#else
+            tempLightmappingSettingsData.filtering                   = (LightmapEditorSettings.FilterMode)so_lightmapSettings.FindProperty(prop_PVRFilteringMode).intValue;
+#endif
+
+#if UNITY_2019_1_OR_NEWER
             tempLightmappingSettingsData.directDenoiser              = LightmapEditorSettings.denoiserTypeDirect;
+#endif
+
             tempLightmappingSettingsData.directFilter                = LightmapEditorSettings.filterTypeDirect;
+
+#if UNITY_2018_2_OR_NEWER
             tempLightmappingSettingsData.directSigma                 = LightmapEditorSettings.filteringAtrousPositionSigmaDirect;
             tempLightmappingSettingsData.directRadius                = LightmapEditorSettings.filteringGaussRadiusDirect;
+#else
+            tempLightmappingSettingsData.directSigma                 = so_lightmapSettings.FindProperty(prop_PVRAtrousDirectSigma).floatValue;
+            tempLightmappingSettingsData.directRadius                = so_lightmapSettings.FindProperty(prop_PVRGaussRDirect).intValue;
+#endif
+
+#if UNITY_2019_1_OR_NEWER
             tempLightmappingSettingsData.indirectDenoiser            = LightmapEditorSettings.denoiserTypeIndirect;
+#endif
+
             tempLightmappingSettingsData.indirectFilter              = LightmapEditorSettings.filterTypeIndirect;
+
+#if UNITY_2018_2_OR_NEWER
             tempLightmappingSettingsData.indirectSigma               = LightmapEditorSettings.filteringAtrousPositionSigmaIndirect;
             tempLightmappingSettingsData.indirectRadius              = LightmapEditorSettings.filteringGaussRadiusIndirect;
+#else
+            tempLightmappingSettingsData.indirectSigma               = so_lightmapSettings.FindProperty(prop_PVRAtrousIndirectSigma).floatValue;
+            tempLightmappingSettingsData.indirectRadius              = so_lightmapSettings.FindProperty(prop_PVRGaussRIndirect).intValue;
+#endif
 
+#if UNITY_2019_1_OR_NEWER
             tempLightmappingSettingsData.aoDenoiser                  = LightmapEditorSettings.denoiserTypeAO;
+#endif
+
             tempLightmappingSettingsData.aoFilter                    = LightmapEditorSettings.filterTypeAO;
+
+#if UNITY_2018_2_OR_NEWER
             tempLightmappingSettingsData.aoSigma                     = LightmapEditorSettings.filteringAtrousPositionSigmaAO;
             tempLightmappingSettingsData.aoRadius                    = LightmapEditorSettings.filteringGaussRadiusAO;
+#else
+            tempLightmappingSettingsData.aoSigma                     = so_lightmapSettings.FindProperty(prop_PVRAtrousAOSigma).floatValue;
+            tempLightmappingSettingsData.aoRadius                    = so_lightmapSettings.FindProperty(prop_PVRGaussRAO).intValue;
+#endif
 
             tempLightmappingSettingsData.indirectResolution          = LightmapEditorSettings.realtimeResolution;
             tempLightmappingSettingsData.lightmapResolution          = LightmapEditorSettings.bakeResolution;
             tempLightmappingSettingsData.lightmapPadding             = LightmapEditorSettings.padding;
+
+#if UNITY_2018_1_OR_NEWER
             tempLightmappingSettingsData.lightmapSize                = LightmapEditorSettings.maxAtlasSize;
+#else
+            tempLightmappingSettingsData.lightmapSize                = LightmapEditorSettings.maxAtlasWidth;
+#endif
             tempLightmappingSettingsData.compressLightmaps           = LightmapEditorSettings.textureCompression;
 
             tempLightmappingSettingsData.enableAO                    = LightmapEditorSettings.enableAmbientOcclusion;
@@ -114,11 +222,19 @@ namespace SceneLightSettings
             tempLightmappingSettingsData.aoIndirectContribution      = LightmapEditorSettings.aoExponentIndirect;
             tempLightmappingSettingsData.aoDirectContribution        = LightmapEditorSettings.aoExponentDirect;
 
+#if UNITY_2018_1_OR_NEWER
             tempLightmappingSettingsData.directionalMode             = LightmapEditorSettings.lightmapsMode;
+#else
+            tempLightmappingSettingsData.directionalMode             = LightmapSettings.lightmapsMode;
+#endif
             tempLightmappingSettingsData.indirectIntensity           = Lightmapping.indirectOutputScale;
             tempLightmappingSettingsData.albedoBoost                 = Lightmapping.bounceBoost;
             tempLightmappingSettingsData.lightmapParameters          = (LightmapParameters)so_lightmapSettings.FindProperty(prop_LightParam).objectReferenceValue;
 
+#if UNITY_2019_1_OR_NEWER
+            tempLightmappingSettingsData.exportTrainingData          = so_lightmapSettings.FindProperty(prop_ExportTrainingData).ToNullableBool();
+            tempLightmappingSettingsData.extractAmbientOcclusion     = so_lightmapSettings.FindProperty(prop_ExtractAO).ToNullableBool();
+#endif
 
             // Other Settings =====================================================================
             tempOtherSettingsData.fog            = RenderSettings.fog;
@@ -180,7 +296,9 @@ namespace SceneLightSettings
                 tempSceneLightData.intensity                 = sceneLight.intensity;
                 tempSceneLightData.range                     = sceneLight.range;
                 tempSceneLightData.spotAngle                 = sceneLight.spotAngle;
+#if UNITY_2019_1_OR_NEWER
                 tempSceneLightData.innerSpotAngle            = sceneLight.innerSpotAngle;
+#endif
                 tempSceneLightData.cookieSize                = sceneLight.cookieSize;
                 tempSceneLightData.shadow                    = new ShadowData()
                 {
@@ -191,8 +309,10 @@ namespace SceneLightSettings
                     bias                     = sceneLight.shadowBias,
                     normalBias               = sceneLight.shadowNormalBias,
                     nearPlane                = sceneLight.shadowNearPlane,
+#if UNITY_2019_1_OR_NEWER
                     cullingMatrixOverride    = sceneLight.shadowMatrixOverride.ToFloatArray(),
                     useCullingMatrixOverride = sceneLight.useShadowMatrixOverride
+#endif
                 };
                 tempSceneLightData.cookie                    = sceneLight.cookie;
 
@@ -210,15 +330,24 @@ namespace SceneLightSettings
                 tempSceneLightData.flare                     = sceneLight.flare;
                 tempSceneLightData.renderMode                = sceneLight.renderMode;
                 tempSceneLightData.cullingMask               = sceneLight.cullingMask;
+#if UNITY_2019_1_OR_NEWER
                 tempSceneLightData.renderingLayerMask        = sceneLight.renderingLayerMask;
+#endif
                 tempSceneLightData.lightmapping              = sceneLight.lightmapBakeType;
+#if UNITY_2018_2_OR_NEWER
                 tempSceneLightData.lightShadowCasterMode     = sceneLight.lightShadowCasterMode;
+#endif
                 tempSceneLightData.areaSize                  = sceneLight.areaSize.ToFloatArray();
                 tempSceneLightData.bounceIntensity           = sceneLight.bounceIntensity;
+#if UNITY_2019_1_OR_NEWER
                 tempSceneLightData.boundingSphereOverride    = sceneLight.boundingSphereOverride.ToFloatArray();
                 tempSceneLightData.useBoundingSphereOverride = sceneLight.useBoundingSphereOverride;
+#endif
+
+#if UNITY_2018_1_OR_NEWER
                 tempSceneLightData.shadowRadius              = sceneLight.shadowRadius;
                 tempSceneLightData.shadowAngle               = sceneLight.shadowAngle;
+#endif
 
                 tempSceneLightDataList.Add(tempSceneLightData);
             }
@@ -260,7 +389,9 @@ namespace SceneLightSettings
                     tempLightProbePositionList.Add(tempLightProbePosition);
                 }
                 tempSceneLightProbeGroup.probePositions = tempLightProbePositionList.ToArray();
+#if UNITY_2019_1_OR_NEWER
                 tempSceneLightProbeGroup.dering         = sceneLightProbeGroup.dering;
+#endif
                 tempSceneLightProbeGroupDataList.Add(tempSceneLightProbeGroup);
             }
             return tempSceneLightProbeGroupDataList.ToArray();
@@ -363,7 +494,11 @@ namespace SceneLightSettings
             // Realtime & Mixed Lighting ==========================================================
             Lightmapping.realtimeGI                                     = tempLightingData.realtimeGlobalIllumination;
             Lightmapping.bakedGI                                        = tempLightingData.bakedGlobalIllumination;
+#if UNITY_2018_2_OR_NEWER
             LightmapEditorSettings.mixedBakeMode                        = tempLightingData.lightingMode;
+#else
+            so_lightmapSettings.FindProperty(prop_MixedBakeMode).SetSerializedProperty((int)tempLightingData.lightingMode);
+#endif
             RenderSettings.subtractiveShadowColor                       = tempLightingData.realtimeShadowColor;
 
             // Lightmapping Settings ==============================================================
@@ -371,38 +506,113 @@ namespace SceneLightSettings
             so_lightmapSettings.FindProperty(prop_FG).SetSerializedProperty(tempLightmappingSettingsData.finalGather);
             so_lightmapSettings.FindProperty(prop_FGRayCount).SetSerializedProperty(tempLightmappingSettingsData.finalGatherRayCount);
             so_lightmapSettings.FindProperty(prop_FGFilter).SetSerializedProperty(tempLightmappingSettingsData.finalGatherDenoising);
+#if UNITY_2018_2_OR_NEWER
             LightmapEditorSettings.prioritizeView                       = tempLightmappingSettingsData.prioritizeView;
+#else
+            so_lightmapSettings.FindProperty(prop_PVRCulling).SetSerializedProperty(tempLightmappingSettingsData.prioritizeView);
+#endif
+
+#if UNITY_2019_1_OR_NEWER
             so_lightmapSettings.FindProperty(prop_PVREnvMIS).SetSerializedProperty(tempLightmappingSettingsData.multipleImportanceSampling);
+#endif
+
+#if UNITY_2018_2_OR_NEWER
             LightmapEditorSettings.directSampleCount                    = tempLightmappingSettingsData.directSamples;
             LightmapEditorSettings.indirectSampleCount                  = tempLightmappingSettingsData.indirectSamples;
+#else
+            so_lightmapSettings.FindProperty(prop_PVRDirectSamples).SetSerializedProperty(tempLightmappingSettingsData.directSamples);
+            so_lightmapSettings.FindProperty(prop_PVRIndirectSamples).SetSerializedProperty(tempLightmappingSettingsData.indirectSamples);
+#endif
+
+#if UNITY_2019_1_OR_NEWER
             so_lightmapSettings.FindProperty(prop_PVREnvSampleCount).SetSerializedProperty(tempLightmappingSettingsData.environmentSamples);
+#endif
+
+#if UNITY_2018_1_OR_NEWER
             LightmapEditorSettings.bounces                              = tempLightmappingSettingsData.bounces;
+#else
+            so_lightmapSettings.FindProperty(prop_PVRBounce).SetSerializedProperty(tempLightmappingSettingsData.bounces);
+#endif
+
+#if UNITY_2018_2_OR_NEWER
             LightmapEditorSettings.filteringMode                        = tempLightmappingSettingsData.filtering;
+#else
+            so_lightmapSettings.FindProperty(prop_PVRFilteringMode).SetSerializedProperty((int)tempLightmappingSettingsData.filtering);
+#endif
+
+#if UNITY_2019_1_OR_NEWER
             LightmapEditorSettings.denoiserTypeDirect                   = tempLightmappingSettingsData.directDenoiser;
+#endif
+
             LightmapEditorSettings.filterTypeDirect                     = tempLightmappingSettingsData.directFilter;
+
+#if UNITY_2018_2_OR_NEWER
             LightmapEditorSettings.filteringAtrousPositionSigmaDirect   = tempLightmappingSettingsData.directSigma;
             LightmapEditorSettings.filteringGaussRadiusDirect           = tempLightmappingSettingsData.directRadius;
+#else
+            so_lightmapSettings.FindProperty(prop_PVRAtrousDirectSigma).SetSerializedProperty(tempLightmappingSettingsData.directSigma);
+            so_lightmapSettings.FindProperty(prop_PVRGaussRDirect).SetSerializedProperty(tempLightmappingSettingsData.directRadius);
+#endif
+
+#if UNITY_2019_1_OR_NEWER
             LightmapEditorSettings.denoiserTypeIndirect                 = tempLightmappingSettingsData.indirectDenoiser;
+#endif
+
             LightmapEditorSettings.filterTypeIndirect                   = tempLightmappingSettingsData.indirectFilter;
+
+#if UNITY_2018_2_OR_NEWER
             LightmapEditorSettings.filteringAtrousPositionSigmaIndirect = tempLightmappingSettingsData.indirectSigma;
             LightmapEditorSettings.filteringGaussRadiusIndirect         = tempLightmappingSettingsData.indirectRadius;
+#else
+            so_lightmapSettings.FindProperty(prop_PVRAtrousIndirectSigma).SetSerializedProperty(tempLightmappingSettingsData.indirectSigma);
+            so_lightmapSettings.FindProperty(prop_PVRGaussRIndirect).SetSerializedProperty(tempLightmappingSettingsData.indirectRadius);
+#endif
+
+#if UNITY_2019_1_OR_NEWER
             LightmapEditorSettings.denoiserTypeAO                       = tempLightmappingSettingsData.aoDenoiser;
+#endif
+
             LightmapEditorSettings.filterTypeAO                         = tempLightmappingSettingsData.aoFilter;
+
+#if UNITY_2018_2_OR_NEWER
             LightmapEditorSettings.filteringAtrousPositionSigmaAO       = tempLightmappingSettingsData.aoSigma;
             LightmapEditorSettings.filteringGaussRadiusAO               = tempLightmappingSettingsData.aoRadius;
+#else
+            so_lightmapSettings.FindProperty(prop_PVRAtrousAOSigma).SetSerializedProperty(tempLightmappingSettingsData.aoSigma);
+            so_lightmapSettings.FindProperty(prop_PVRGaussRAO).SetSerializedProperty(tempLightmappingSettingsData.aoRadius);
+#endif
+
             LightmapEditorSettings.realtimeResolution                   = tempLightmappingSettingsData.indirectResolution;
             LightmapEditorSettings.bakeResolution                       = tempLightmappingSettingsData.lightmapResolution;
             LightmapEditorSettings.padding                              = tempLightmappingSettingsData.lightmapPadding;
+
+#if UNITY_2018_1_OR_NEWER
             LightmapEditorSettings.maxAtlasSize                         = tempLightmappingSettingsData.lightmapSize;
+#else
+            LightmapEditorSettings.maxAtlasWidth                        = tempLightmappingSettingsData.lightmapSize;
+            LightmapEditorSettings.maxAtlasHeight                       = tempLightmappingSettingsData.lightmapSize;
+#endif
+
             LightmapEditorSettings.textureCompression                   = tempLightmappingSettingsData.compressLightmaps;
             LightmapEditorSettings.enableAmbientOcclusion               = tempLightmappingSettingsData.enableAO;
             LightmapEditorSettings.aoMaxDistance                        = tempLightmappingSettingsData.aoMaxDistance;
             LightmapEditorSettings.aoExponentIndirect                   = tempLightmappingSettingsData.aoIndirectContribution;
             LightmapEditorSettings.aoExponentDirect                     = tempLightmappingSettingsData.aoDirectContribution;
+
+#if UNITY_2018_1_OR_NEWER
             LightmapEditorSettings.lightmapsMode                        = tempLightmappingSettingsData.directionalMode;
+#else
+            LightmapSettings.lightmapsMode                              = tempLightmappingSettingsData.directionalMode;
+#endif
+
             Lightmapping.indirectOutputScale                            = tempLightmappingSettingsData.indirectIntensity;
             Lightmapping.bounceBoost                                    = tempLightmappingSettingsData.albedoBoost;
             so_lightmapSettings.FindProperty(prop_LightParam).SetSerializedProperty(tempLightmappingSettingsData.lightmapParameters);
+
+#if UNITY_2019_1_OR_NEWER
+            so_lightmapSettings.FindProperty(prop_ExportTrainingData).SetSerializedProperty(tempLightmappingSettingsData.exportTrainingData);
+            so_lightmapSettings.FindProperty(prop_ExtractAO).SetSerializedProperty(tempLightmappingSettingsData.extractAmbientOcclusion);
+#endif
 
             // Other Settings =====================================================================
             RenderSettings.fog                                          = tempOtherSettingsData.fog;
@@ -447,7 +657,9 @@ namespace SceneLightSettings
                 lightComponent.intensity                 = sceneLightData.intensity;
                 lightComponent.range                     = sceneLightData.range;
                 lightComponent.spotAngle                 = sceneLightData.spotAngle;
+#if UNITY_2019_1_OR_NEWER
                 lightComponent.innerSpotAngle            = sceneLightData.innerSpotAngle;
+#endif
                 lightComponent.cookieSize                = sceneLightData.cookieSize;
 
                 lightComponent.shadows                   = sceneLightData.shadow.type;
@@ -457,8 +669,10 @@ namespace SceneLightSettings
                 lightComponent.shadowBias                = sceneLightData.shadow.bias;
                 lightComponent.shadowNormalBias          = sceneLightData.shadow.normalBias;
                 lightComponent.shadowNearPlane           = sceneLightData.shadow.nearPlane;
+#if UNITY_2019_1_OR_NEWER
                 lightComponent.shadowMatrixOverride      = sceneLightData.shadow.cullingMatrixOverride.ToMatrix4x4();
                 lightComponent.useShadowMatrixOverride   = sceneLightData.shadow.useCullingMatrixOverride;
+#endif
                 lightComponent.cookie                    = sceneLightData.cookie;
 
                 so_light.FindProperty("m_DrawHalo").SetSerializedProperty(sceneLightData.drawHalo);
@@ -475,15 +689,24 @@ namespace SceneLightSettings
                 lightComponent.flare                     = sceneLightData.flare;
                 lightComponent.renderMode                = sceneLightData.renderMode;
                 lightComponent.cullingMask               = sceneLightData.cullingMask;
+#if UNITY_2019_1_OR_NEWER
                 lightComponent.renderingLayerMask        = sceneLightData.renderingLayerMask;
+#endif
                 lightComponent.lightmapBakeType          = sceneLightData.lightmapping;
+#if UNITY_2018_2_OR_NEWER
                 lightComponent.lightShadowCasterMode     = sceneLightData.lightShadowCasterMode;
+#endif
                 lightComponent.areaSize                  = sceneLightData.areaSize.ToVector2();
                 lightComponent.bounceIntensity           = sceneLightData.bounceIntensity;
+#if UNITY_2019_1_OR_NEWER
                 lightComponent.boundingSphereOverride    = sceneLightData.boundingSphereOverride.ToVector4();
                 lightComponent.useBoundingSphereOverride = sceneLightData.useBoundingSphereOverride;
+#endif
+
+#if UNITY_2018_1_OR_NEWER
                 lightComponent.shadowRadius              = sceneLightData.shadowRadius;
                 lightComponent.shadowAngle               = sceneLightData.shadowAngle;
+#endif
 
                 Undo.RegisterCreatedObjectUndo(lightGameObject, "ImportSceneLightSetting");
             }
@@ -507,7 +730,9 @@ namespace SceneLightSettings
                 lightProbeTransform.localScale     = sceneLightProbeData.transformData.worldScale.ToVector3();
 
                 lightProbeComponent.enabled        = sceneLightProbeData.enabled;
+#if UNITY_2019_1_OR_NEWER
                 lightProbeComponent.dering         = sceneLightProbeData.dering;
+#endif
                 lightProbeComponent.probePositions = sceneLightProbeData.probePositions.ToVector3Array();
 
                 Undo.RegisterCreatedObjectUndo(lightProbeGameObject, "ImportSceneLightSetting");

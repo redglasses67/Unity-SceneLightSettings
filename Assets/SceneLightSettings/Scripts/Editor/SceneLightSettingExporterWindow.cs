@@ -17,16 +17,17 @@ namespace SceneLightSettings
         private static readonly Vector2 windowSizeNoImport = new Vector2(340, 280);
         private static readonly Vector2 windowSizeEmpty    = new Vector2(340, 208);
 
-        private static readonly Color titleBgColor         = new Color(0.1f, 0.15f, 0.35f, 0.5f);
-        private static readonly Color exportGroupColor     = new Color(1f, 0.8f, 0.9f, 1f);
-        private static readonly Color exportButtonColor    = new Color(0.9f, 0.6f, 0.7f, 1f);
-        private static readonly Color importGroupColor     = new Color(0.7f, 0.9f, 1f, 1f);
-        private static readonly Color importButtonColor    = new Color(0.5f, 0.7f, 0.9f, 1f);
+        private static readonly Color titleBgColor      = new Color(0.1f, 0.15f, 0.35f, 1f);
+        private static readonly Color exportGroupColor  = new Color(1f, 0.8f, 0.9f, 1f);
+        private static readonly Color exportButtonColor = new Color(0.9f, 0.6f, 0.7f, 1f);
+        private static readonly Color importGroupColor  = new Color(0.7f, 0.9f, 1f, 1f);
+        private static readonly Color importButtonColor = new Color(0.5f, 0.7f, 0.9f, 1f);
+
+        private static string exportTextColorHex;
+        private static string importTextColorHex;
 
         private static GUIStyle labelStyle;
-        private static GUIStyle textStyle;
         private static GUIStyle buttonStyle;
-        private static GUIStyle foldoutStyle;
         private static GUIStyle titleStyle;
 
 
@@ -148,7 +149,8 @@ namespace SceneLightSettings
 
             GetEditorIcons();
             GetEditorPrefs();
-            SetupMessages();
+            SetMessages();
+            SetTextColors();
         }
 
 
@@ -227,7 +229,7 @@ namespace SceneLightSettings
             doDeleteExistingLights       = EditorPrefs.GetBool(prefsKey_doDeleteExistingLights ,true);
         }
 
-        private void SetupMessages()
+        private void SetMessages()
         {
             label_SceneName.text        = "Current Scene Name";
             label_ScenePath.text        = "Current Scene Path";
@@ -255,6 +257,11 @@ namespace SceneLightSettings
                 "SceneLightingData が読み込めませんでした..." : "Did not load SceneLightingData";
         }
 
+        private void SetTextColors()
+        {
+            exportTextColorHex = (EditorGUIUtility.isProSkin == true) ? "<color=#ff7f7f>" : "<color=#8b0000>";
+            importTextColorHex = (EditorGUIUtility.isProSkin == true) ? "<color=#7fbfff>" : "<color=#191970>";
+        }
 
         private void OnGUI()
         {
@@ -266,8 +273,8 @@ namespace SceneLightSettings
                 {
                     EditorGUI.DrawRect(new Rect(0, 0, 340, 30), titleBgColor);
                     // EditorGUI.DropShadowLabel だとRichTextが使えなそうなので、色違いをズラして描画させる
-                    EditorGUI.LabelField(new Rect(14, 8, 300, 20), "<size=13><b><color=#888888>" + label_title + "</color></b></size>", labelStyle);
-                    EditorGUI.LabelField(new Rect(13, 7, 300, 20), "<size=13><b><color=#444444>" + label_title + "</color></b></size>", labelStyle);
+                    EditorGUI.LabelField(new Rect(14, 8, 300, 20), "<size=13><b><color=#444444>" + label_title + "</color></b></size>", labelStyle);
+                    EditorGUI.LabelField(new Rect(13, 7, 300, 20), "<size=13><b><color=#333333>" + label_title + "</color></b></size>", labelStyle);
                     EditorGUI.LabelField(new Rect(12, 6, 300, 20), "<size=13><b><color=#222222>" + label_title + "</color></b></size>", labelStyle);
                     EditorGUI.LabelField(new Rect(11, 5, 300, 20), "<size=13><b><color=#000000>" + label_title + "</color></b></size>", labelStyle);
                     EditorGUI.LabelField(new Rect(10, 4, 300, 20), "<size=13><b><color=#ffd700>" + label_title + "</color></b></size>", labelStyle);
@@ -293,8 +300,6 @@ namespace SceneLightSettings
             }
 
             GUILayout.Space(30);
-
-            currentSceneName = (currentScene != null) ? currentScene.name : "...";
 
             EditorGUILayout.LabelField(label_SceneName);
             using (new EditorGUILayout.HorizontalScope())
@@ -347,13 +352,6 @@ namespace SceneLightSettings
                 labelStyle.alignment  = TextAnchor.MiddleLeft;
             }
 
-            if (textStyle == null)
-            {
-                textStyle             = new GUIStyle(GUI.skin.textField);
-                textStyle.richText    = true;
-                textStyle.alignment   = TextAnchor.MiddleCenter;
-            }
-
             if (buttonStyle == null)
             {
                 buttonStyle           = new GUIStyle(GUI.skin.button);
@@ -371,7 +369,7 @@ namespace SceneLightSettings
         private void ExportLightSettingGroup()
         {
             EditorGUI.BeginChangeCheck();
-            isExpandedExportLightSetting = CustomFoldout(isExpandedExportLightSetting, "<color=#8b0000><b>Export Light Setting</b></color>");
+            isExpandedExportLightSetting = CustomFoldout(isExpandedExportLightSetting, exportTextColorHex + "<b>Export Light Setting</b></color>");
             if (EditorGUI.EndChangeCheck())
             {
                 EditorPrefs.SetBool(prefsKey_isExpandedExportLightSetting, isExpandedExportLightSetting);
@@ -405,7 +403,7 @@ namespace SceneLightSettings
                     {
                         using (new EditorGUILayout.VerticalScope())
                         {
-                            if (GUILayout.Button("<color=#8b0000><size=15><b>Export</b></size></color>", buttonStyle, GUILayout.Height(60)))
+                            if (GUILayout.Button(exportTextColorHex + "<size=15><b>Export</b></size></color>", buttonStyle, GUILayout.Height(60)))
                             {
                                 ExportSceneLightingData();
                             }
@@ -420,7 +418,7 @@ namespace SceneLightSettings
         private void ImportLightSettingGroup()
         {
             EditorGUI.BeginChangeCheck();
-            isExpandedImportLightSetting = CustomFoldout(isExpandedImportLightSetting, "<color=#191970><b>Import Light Setting</b></color>");
+            isExpandedImportLightSetting = CustomFoldout(isExpandedImportLightSetting, importTextColorHex + "<b>Import Light Setting</b></color>");
             if (EditorGUI.EndChangeCheck())
             {
                 EditorPrefs.SetBool(prefsKey_isExpandedImportLightSetting, isExpandedImportLightSetting);
@@ -456,7 +454,7 @@ namespace SceneLightSettings
                     {
                         using (new EditorGUILayout.VerticalScope())
                         {
-                            if (GUILayout.Button("<color=#191970><size=15><b>Import</b></size></color>", buttonStyle, GUILayout.Height(60)))
+                            if (GUILayout.Button(importTextColorHex + "<size=15><b>Import</b></size></color>", buttonStyle, GUILayout.Height(60)))
                             {
                                 ImportSceneLightingData();
                             }
@@ -467,18 +465,18 @@ namespace SceneLightSettings
 
                 EditorGUILayout.Space();
 
-                EditorGUILayout.LabelField(label_ImportFilePath, labelStyle);
+                EditorGUILayout.LabelField(label_ImportFilePath);
                 using (new EditorGUILayout.HorizontalScope())
                 {
                     GUILayout.Space(15);
 
                     EditorGUI.BeginDisabledGroup(true);
-                    EditorGUILayout.TextField("", importDataPath, textStyle);
+                    EditorGUILayout.TextField("", importDataPath);
                     EditorGUI.EndDisabledGroup();
 
                     using (new BackgroundColorScope(importButtonColor))
                     {
-                        if (GUILayout.Button("<color=#191970><b>...</b></color>", buttonStyle, GUILayout.Width(30)))
+                        if (GUILayout.Button(importTextColorHex + "<b>...</b></color>", buttonStyle, GUILayout.Width(30)))
                         {
                             var openFolderPath = (currentSceneFolderPath != "") ? currentSceneFolderPath : Application.dataPath;
                             var selectedImportDataPath = EditorUtility.OpenFilePanelWithFilters(

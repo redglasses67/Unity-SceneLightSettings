@@ -46,22 +46,30 @@ namespace SceneLightSettings
         public NullableBool finalGatherDenoising;
 
         public bool prioritizeView;
+#if UNITY_2019_1_OR_NEWER
         public NullableBool multipleImportanceSampling;
+#endif
         public int directSamples;
         public int indirectSamples;
         public NullableInt environmentSamples;
         public int bounces;
 
         public LightmapEditorSettings.FilterMode filtering;
+#if UNITY_2019_1_OR_NEWER
         public LightmapEditorSettings.DenoiserType directDenoiser;
+#endif
         public LightmapEditorSettings.FilterType directFilter;
         public int directRadius;
         public float directSigma;
+#if UNITY_2019_1_OR_NEWER
         public LightmapEditorSettings.DenoiserType indirectDenoiser;
+#endif
         public LightmapEditorSettings.FilterType indirectFilter;
         public int indirectRadius;
         public float indirectSigma;
+#if UNITY_2019_1_OR_NEWER
         public LightmapEditorSettings.DenoiserType aoDenoiser;
+#endif
         public LightmapEditorSettings.FilterType aoFilter;
         public int aoRadius;
         public float aoSigma;
@@ -81,6 +89,11 @@ namespace SceneLightSettings
         public float indirectIntensity;
         public float albedoBoost;
         public LightmapParameters lightmapParameters;
+
+#if UNITY_2019_1_OR_NEWER
+        public NullableBool exportTrainingData;
+        public NullableBool extractAmbientOcclusion;
+#endif
     }
 
     [System.Serializable]
@@ -170,7 +183,9 @@ namespace SceneLightSettings
         public int cullingMask;
         public int renderingLayerMask;
         public LightmapBakeType lightmapping;
+#if UNITY_2018_2_OR_NEWER
         public LightShadowCasterMode lightShadowCasterMode;
+#endif
         public float[] areaSize = new float[2];
         public float bounceIntensity;
         public float colorTemperature;

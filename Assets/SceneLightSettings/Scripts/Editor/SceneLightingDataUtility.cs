@@ -215,11 +215,29 @@ namespace SceneLightSettings
             return vec3Array;
         }
 
+        public static void SetSerializedProperty(this SerializedProperty sp, float floatValue)
+        {
+            if (sp == null) { return; }
+            if (sp.propertyType != SerializedPropertyType.Float) { return; }
+            sp.floatValue = floatValue;
+        }
+        public static void SetSerializedProperty(this SerializedProperty sp, int intValue)
+        {
+            if (sp == null) { return; }
+            if (sp.propertyType != SerializedPropertyType.Integer) { return; }
+            sp.intValue = intValue;
+        }
         public static void SetSerializedProperty(this SerializedProperty sp, NullableInt nullableInt)
         {
             if (sp == null || nullableInt.hasValue == false) { return; }
             if (sp.propertyType != SerializedPropertyType.Integer) { return; }
             sp.intValue = nullableInt.value;
+        }
+        public static void SetSerializedProperty(this SerializedProperty sp, bool boolValue)
+        {
+            if (sp == null) { return; }
+            if (sp.propertyType != SerializedPropertyType.Boolean) { return; }
+            sp.boolValue = boolValue;
         }
         public static void SetSerializedProperty(this SerializedProperty sp, NullableBool nullableBool)
         {
