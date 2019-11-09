@@ -12,10 +12,12 @@ namespace SceneLightSettings
 #region Window 関連 変数
         private static SceneLightSettingExporterWindow window;
         private static SceneLightSettingHelpWindow helpWindow;
-        private static readonly Vector2 windowSizeFull     = new Vector2(340, 398);
-        private static readonly Vector2 windowSizeNoExport = new Vector2(340, 326);
-        private static readonly Vector2 windowSizeNoImport = new Vector2(340, 280);
-        private static readonly Vector2 windowSizeEmpty    = new Vector2(340, 208);
+        private static readonly Vector2 windowMinSize        = new Vector2(340, 125);
+        private static readonly Vector2 windowSizeFull       = new Vector2(340, 485);
+        private static readonly Vector2 windowSizeExportOnly = new Vector2(340, 270);
+        private static readonly Vector2 windowSizeImportOnly = new Vector2(340, 405);
+        private static readonly Vector2 windowSizeEmpty      = new Vector2(340, 190);
+        private static Vector2 scrollPos;
 
         private static readonly Color titleBgColor      = new Color(0.1f, 0.15f, 0.35f, 1f);
         private static readonly Color exportGroupColor  = new Color(1f, 0.8f, 0.9f, 1f);
@@ -27,6 +29,7 @@ namespace SceneLightSettings
         private static string importTextColorHex;
 
         private static GUIStyle labelStyle;
+        private static GUIStyle textStyle;
         private static GUIStyle buttonStyle;
         private static GUIStyle titleStyle;
 
@@ -45,6 +48,10 @@ namespace SceneLightSettings
         private static bool isExpandedImportLightSetting;
         private static string importDataPath;
         private static bool doImportLightingData;
+        private static bool doImportLightingData_ENV;
+        private static bool doImportLightingData_RML;
+        private static bool doImportLightingData_LMS;
+        private static bool doImportLightingData_OTS;
         private static bool doImportLights;
         private static bool doImportLightProbeGroups;
         private static bool doImportReflectionProbes;
@@ -57,6 +64,10 @@ namespace SceneLightSettings
         private static GUIContent label_ScenePath        = new GUIContent();
 
         private static GUIContent label_LightingData     = new GUIContent();
+        private static readonly string label_ENV         = "Enviroment";
+        private static readonly string label_RML         = "Realtime / Mixed Lighting";
+        private static readonly string label_LMS         = "Lightmapping Settings";
+        private static readonly string label_OTS         = "Other Settings";
         private static GUIContent label_Lights           = new GUIContent();
         private static GUIContent label_LightProbeGroups = new GUIContent();
         private static GUIContent label_ReflectionProbes = new GUIContent();
@@ -80,6 +91,10 @@ namespace SceneLightSettings
 
         private const string prefsKey_isExpandedImportLightSetting = "SceneLightSetting isExpandedImportLightSetting";
         private const string prefsKey_doImportLightingData         = "SceneLightSetting doImportLightingData";
+        private const string prefsKey_doImportLightingData_ENV     = "SceneLightSetting doImportLightingData Enviroment";
+        private const string prefsKey_doImportLightingData_RML     = "SceneLightSetting doImportLightingData Realtime Mixed Lighting";
+        private const string prefsKey_doImportLightingData_LMS     = "SceneLightSetting doImportLightingData Lightmappong Settings";
+        private const string prefsKey_doImportLightingData_OTS     = "SceneLightSetting doImportLightingData Other Settings";
         private const string prefsKey_doImportLights               = "SceneLightSetting doImportLights";
         private const string prefsKey_doImportLightProbeGroups     = "SceneLightSetting doImportLightProbeGroups";
         private const string prefsKey_doImportReflectionProbes     = "SceneLightSetting doImportReflectionProbes";
@@ -94,31 +109,32 @@ namespace SceneLightSettings
             GetSceneInfo(SceneManager.GetActiveScene());
             window = EditorWindow.GetWindow<SceneLightSettingExporterWindow>();
             window.titleContent = new GUIContent("Scene Light Setting Exporter Window");
-            var icon = EditorGUIUtility.IconContent("Lightmapping");
-            if (icon != null)
+            var titleIcon = EditorGUIUtility.IconContent("Lightmapping");
+            if (titleIcon != null)
             {
-                window.titleContent.image = icon.image;
+                window.titleContent.image = titleIcon.image;
             }
-            ReseizeWindow();
+            window.minSize = windowMinSize;
+            ChangeWindowMaxSize();
         }
 
-        private static void ReseizeWindow()
+        private static void ChangeWindowMaxSize()
         {
             if (isExpandedExportLightSetting == false && isExpandedImportLightSetting == false)
             {
-                window.maxSize = window.minSize = windowSizeEmpty;
+                window.maxSize = windowSizeEmpty;
             }
             else if (isExpandedImportLightSetting == false)
             {
-                window.maxSize = window.minSize = windowSizeNoImport;
+                window.maxSize = windowSizeExportOnly;
             }
             else if (isExpandedExportLightSetting == false)
             {
-                window.maxSize = window.minSize = windowSizeNoExport;
+                window.maxSize = windowSizeImportOnly;
             }
             else
             {
-                window.maxSize = window.minSize = windowSizeFull;
+                window.maxSize = windowSizeFull;
             }
         }
 
@@ -215,18 +231,22 @@ namespace SceneLightSettings
 
         private void GetEditorPrefs()
         {
-            isExpandedExportLightSetting = EditorPrefs.GetBool(prefsKey_isExpandedExportLightSetting ,true);
-            doExportLights               = EditorPrefs.GetBool(prefsKey_doExportLights ,true);
-            doExportLightingData         = EditorPrefs.GetBool(prefsKey_doExportLightingData ,true);
-            doExportLightProbeGroups     = EditorPrefs.GetBool(prefsKey_doExportLightProbeGroups ,true);
-            doExportReflectionProbes     = EditorPrefs.GetBool(prefsKey_doExportReflectionProbes ,true);
+            isExpandedExportLightSetting = EditorPrefs.GetBool(prefsKey_isExpandedExportLightSetting, true);
+            doExportLights               = EditorPrefs.GetBool(prefsKey_doExportLights, true);
+            doExportLightingData         = EditorPrefs.GetBool(prefsKey_doExportLightingData, true);
+            doExportLightProbeGroups     = EditorPrefs.GetBool(prefsKey_doExportLightProbeGroups, true);
+            doExportReflectionProbes     = EditorPrefs.GetBool(prefsKey_doExportReflectionProbes, true);
 
-            isExpandedImportLightSetting = EditorPrefs.GetBool(prefsKey_isExpandedImportLightSetting ,true);
-            doImportLightingData         = EditorPrefs.GetBool(prefsKey_doImportLightingData ,true);
-            doImportLights               = EditorPrefs.GetBool(prefsKey_doImportLights ,true);
-            doImportLightProbeGroups     = EditorPrefs.GetBool(prefsKey_doImportLightProbeGroups ,true);
-            doImportReflectionProbes     = EditorPrefs.GetBool(prefsKey_doImportReflectionProbes ,true);
-            doDeleteExistingLights       = EditorPrefs.GetBool(prefsKey_doDeleteExistingLights ,true);
+            isExpandedImportLightSetting = EditorPrefs.GetBool(prefsKey_isExpandedImportLightSetting, true);
+            doImportLightingData         = EditorPrefs.GetBool(prefsKey_doImportLightingData, true);
+            doImportLightingData_ENV     = EditorPrefs.GetBool(prefsKey_doImportLightingData_ENV, true);
+            doImportLightingData_RML     = EditorPrefs.GetBool(prefsKey_doImportLightingData_RML, true);
+            doImportLightingData_LMS     = EditorPrefs.GetBool(prefsKey_doImportLightingData_LMS, true);
+            doImportLightingData_OTS     = EditorPrefs.GetBool(prefsKey_doImportLightingData_OTS, true);
+            doImportLights               = EditorPrefs.GetBool(prefsKey_doImportLights, true);
+            doImportLightProbeGroups     = EditorPrefs.GetBool(prefsKey_doImportLightProbeGroups, true);
+            doImportReflectionProbes     = EditorPrefs.GetBool(prefsKey_doImportReflectionProbes, true);
+            doDeleteExistingLights       = EditorPrefs.GetBool(prefsKey_doDeleteExistingLights, true);
         }
 
         private void SetMessages()
@@ -263,6 +283,36 @@ namespace SceneLightSettings
             importTextColorHex = (EditorGUIUtility.isProSkin == true) ? "<color=#7fbfff>" : "<color=#191970>";
         }
 
+        private void GetGUIStyles()
+        {
+            if (labelStyle == null)
+            {
+                labelStyle            = new GUIStyle(GUI.skin.label);
+                labelStyle.richText   = true;
+                labelStyle.alignment  = TextAnchor.MiddleLeft;
+            }
+
+            if (textStyle == null)
+            {
+                textStyle             = new GUIStyle(GUI.skin.textField);
+                textStyle.alignment   = TextAnchor.MiddleLeft;
+                textStyle.wordWrap    = true;
+            }
+
+            if (buttonStyle == null)
+            {
+                buttonStyle           = new GUIStyle(GUI.skin.button);
+                buttonStyle.richText  = true;
+                buttonStyle.alignment = TextAnchor.MiddleCenter;
+            }
+
+            if (titleStyle == null)
+            {
+                titleStyle            = new GUIStyle(GUI.skin.GetStyle("IN TitleText"));
+                titleStyle.alignment  = TextAnchor.UpperCenter;
+            }
+        }
+
         private void OnGUI()
         {
             GetGUIStyles();
@@ -271,7 +321,7 @@ namespace SceneLightSettings
             {
                 using (new EditorGUILayout.VerticalScope())
                 {
-                    EditorGUI.DrawRect(new Rect(0, 0, 340, 30), titleBgColor);
+                    EditorGUI.DrawRect(new Rect(0, 0, position.width, 30), titleBgColor);
                     // EditorGUI.DropShadowLabel だとRichTextが使えなそうなので、色違いをズラして描画させる
                     EditorGUI.LabelField(new Rect(14, 8, 300, 20), "<size=13><b><color=#444444>" + label_title + "</color></b></size>", labelStyle);
                     EditorGUI.LabelField(new Rect(13, 7, 300, 20), "<size=13><b><color=#333333>" + label_title + "</color></b></size>", labelStyle);
@@ -301,6 +351,8 @@ namespace SceneLightSettings
 
             GUILayout.Space(30);
 
+            scrollPos = EditorGUILayout.BeginScrollView(scrollPos, GUILayout.MaxHeight(520));
+
             EditorGUILayout.LabelField(label_SceneName);
             using (new EditorGUILayout.HorizontalScope())
             {
@@ -316,12 +368,12 @@ namespace SceneLightSettings
             {
                 EditorGUILayout.Space();
                 EditorGUI.BeginDisabledGroup(true);
-                EditorGUILayout.TextField(currentSceneFolderPath, GUILayout.Width(320));
+                EditorGUILayout.TextField(currentSceneFolderPath, textStyle, GUILayout.Width(320), GUILayout.ExpandHeight(true));
                 EditorGUI.EndDisabledGroup();
                 EditorGUILayout.Space();
             }
 
-            GUILayout.Space(10);
+            GUILayout.Box("", GUILayout.ExpandWidth(true), GUILayout.Height(1));
 
             using (new BackgroundColorScope(exportGroupColor))
             {
@@ -331,7 +383,7 @@ namespace SceneLightSettings
                 }
             }
 
-            GUILayout.Space(6);
+            GUILayout.Space(5);
 
             using (new BackgroundColorScope(importGroupColor))
             {
@@ -340,157 +392,152 @@ namespace SceneLightSettings
                     ImportLightSettingGroup();
                 }
             }
-        }
 
-        private void GetGUIStyles()
-        {
-            if (labelStyle == null)
-            {
-                labelStyle            = new GUIStyle();
-                labelStyle.richText   = true;
-                labelStyle.font       = GUI.skin.font;
-                labelStyle.alignment  = TextAnchor.MiddleLeft;
-            }
-
-            if (buttonStyle == null)
-            {
-                buttonStyle           = new GUIStyle(GUI.skin.button);
-                buttonStyle.richText  = true;
-                buttonStyle.alignment = TextAnchor.MiddleCenter;
-            }
-
-            if (titleStyle == null)
-            {
-                titleStyle            = new GUIStyle(GUI.skin.GetStyle("IN TitleText"));
-                titleStyle.alignment  = TextAnchor.UpperCenter;
-            }
+            EditorGUILayout.EndScrollView();
+            GUILayout.Space(5);
         }
 
         private void ExportLightSettingGroup()
         {
             EditorGUI.BeginChangeCheck();
-            isExpandedExportLightSetting = CustomFoldout(isExpandedExportLightSetting, exportTextColorHex + "<b>Export Light Setting</b></color>");
+            isExpandedExportLightSetting = CustomFoldout(
+                isExpandedExportLightSetting,
+                exportTextColorHex + "<b>Export Light Setting</b></color>");
             if (EditorGUI.EndChangeCheck())
             {
                 EditorPrefs.SetBool(prefsKey_isExpandedExportLightSetting, isExpandedExportLightSetting);
-                ReseizeWindow();
+                ChangeWindowMaxSize();
                 GUI.changed = false;
             }
 
-            if (isExpandedExportLightSetting == true)
-            {
-                EditorGUI.indentLevel++;
+            if (isExpandedExportLightSetting == false) { return; }
 
-                using (new EditorGUILayout.HorizontalScope())
+            EditorGUI.indentLevel++;
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                using (new EditorGUILayout.VerticalScope())
+                {
+                    EditorGUI.BeginChangeCheck();
+                    doExportLightingData     = EditorGUILayout.ToggleLeft(label_LightingData, doExportLightingData);
+                    doExportLights           = EditorGUILayout.ToggleLeft(label_Lights, doExportLights);
+                    doExportLightProbeGroups = EditorGUILayout.ToggleLeft(label_LightProbeGroups, doExportLightProbeGroups);
+                    doExportReflectionProbes = EditorGUILayout.ToggleLeft(label_ReflectionProbes, doExportReflectionProbes);
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        EditorPrefs.SetBool(prefsKey_doExportLightingData, doExportLightingData);
+                        EditorPrefs.SetBool(prefsKey_doExportLights, doExportLights);
+                        EditorPrefs.SetBool(prefsKey_doExportLightProbeGroups, doExportLightProbeGroups);
+                        EditorPrefs.SetBool(prefsKey_doExportReflectionProbes, doExportReflectionProbes);
+                    }
+                }
+
+                using (new BackgroundColorScope(exportButtonColor))
                 {
                     using (new EditorGUILayout.VerticalScope())
                     {
-                        EditorGUI.BeginChangeCheck();
-                        doExportLightingData     = EditorGUILayout.ToggleLeft(label_LightingData, doExportLightingData, GUILayout.Width(180));
-                        doExportLights           = EditorGUILayout.ToggleLeft(label_Lights, doExportLights, GUILayout.Width(180));
-                        doExportLightProbeGroups = EditorGUILayout.ToggleLeft(label_LightProbeGroups, doExportLightProbeGroups, GUILayout.Width(180));
-                        doExportReflectionProbes = EditorGUILayout.ToggleLeft(label_ReflectionProbes, doExportReflectionProbes, GUILayout.Width(180));
-                        if (EditorGUI.EndChangeCheck())
+                        if (GUILayout.Button(exportTextColorHex + "<size=15><b>Export</b></size></color>",
+                            buttonStyle,
+                            GUILayout.Height(70),
+                            GUILayout.Width(100)))
                         {
-                            EditorPrefs.SetBool(prefsKey_doExportLightingData, doExportLightingData);
-                            EditorPrefs.SetBool(prefsKey_doExportLights, doExportLights);
-                            EditorPrefs.SetBool(prefsKey_doExportLightProbeGroups, doExportLightProbeGroups);
-                            EditorPrefs.SetBool(prefsKey_doExportReflectionProbes, doExportReflectionProbes);
+                            ExportSceneLightingData();
                         }
                     }
-
-                    using (new BackgroundColorScope(exportButtonColor))
-                    {
-                        using (new EditorGUILayout.VerticalScope())
-                        {
-                            if (GUILayout.Button(exportTextColorHex + "<size=15><b>Export</b></size></color>", buttonStyle, GUILayout.Height(60)))
-                            {
-                                ExportSceneLightingData();
-                            }
-                        }
-                    }
-                    GUILayout.Space(10);
                 }
-                EditorGUI.indentLevel--;
+                EditorGUILayout.Space();
             }
+            EditorGUI.indentLevel--;
+            EditorGUILayout.Space();
         }
 
         private void ImportLightSettingGroup()
         {
             EditorGUI.BeginChangeCheck();
-            isExpandedImportLightSetting = CustomFoldout(isExpandedImportLightSetting, importTextColorHex + "<b>Import Light Setting</b></color>");
+            isExpandedImportLightSetting = CustomFoldout(
+                isExpandedImportLightSetting,
+                importTextColorHex + "<b>Import Light Setting</b></color>");
             if (EditorGUI.EndChangeCheck())
             {
                 EditorPrefs.SetBool(prefsKey_isExpandedImportLightSetting, isExpandedImportLightSetting);
-                ReseizeWindow();
+                ChangeWindowMaxSize();
                 GUI.changed = false;
             }
 
-            if (isExpandedImportLightSetting == true)
-            {
-                EditorGUI.indentLevel++;
+            if (isExpandedImportLightSetting == false) { return; }
 
-                using (new EditorGUILayout.HorizontalScope())
+            EditorGUI.indentLevel++;
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                using (new EditorGUILayout.VerticalScope())
+                {
+                    EditorGUI.BeginChangeCheck();
+                    doImportLightingData     = EditorGUILayout.ToggleLeft(label_LightingData, doImportLightingData);
+                    EditorGUI.indentLevel++;
+                    doImportLightingData_ENV = EditorGUILayout.ToggleLeft(label_ENV, doImportLightingData_ENV);
+                    doImportLightingData_RML = EditorGUILayout.ToggleLeft(label_RML, doImportLightingData_RML);
+                    doImportLightingData_LMS = EditorGUILayout.ToggleLeft(label_LMS, doImportLightingData_LMS);
+                    doImportLightingData_OTS = EditorGUILayout.ToggleLeft(label_OTS, doImportLightingData_OTS);
+                    EditorGUI.indentLevel--;
+                    doImportLights           = EditorGUILayout.ToggleLeft(label_Lights, doImportLights);
+                    doImportLightProbeGroups = EditorGUILayout.ToggleLeft(label_LightProbeGroups, doImportLightProbeGroups);
+                    doImportReflectionProbes = EditorGUILayout.ToggleLeft(label_ReflectionProbes, doImportReflectionProbes);
+                    doDeleteExistingLights   = EditorGUILayout.ToggleLeft(label_ExistingLights, doDeleteExistingLights);
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        EditorPrefs.SetBool(prefsKey_doImportLightingData, doImportLightingData);
+                        EditorPrefs.SetBool(prefsKey_doImportLights, doImportLights);
+                        EditorPrefs.SetBool(prefsKey_doImportLightProbeGroups, doImportLightProbeGroups);
+                        EditorPrefs.SetBool(prefsKey_doImportReflectionProbes, doImportReflectionProbes);
+                        EditorPrefs.SetBool(prefsKey_doDeleteExistingLights, doDeleteExistingLights);
+                    }
+                }
+
+                using (new BackgroundColorScope(importButtonColor))
                 {
                     using (new EditorGUILayout.VerticalScope())
                     {
-                        EditorGUI.BeginChangeCheck();
-                        doImportLightingData     = EditorGUILayout.ToggleLeft(label_LightingData, doImportLightingData, GUILayout.Width(180));
-                        doImportLights           = EditorGUILayout.ToggleLeft(label_Lights, doImportLights, GUILayout.Width(180));
-                        doImportLightProbeGroups = EditorGUILayout.ToggleLeft(label_LightProbeGroups, doImportLightProbeGroups, GUILayout.Width(180));
-                        doImportReflectionProbes = EditorGUILayout.ToggleLeft(label_ReflectionProbes, doImportReflectionProbes, GUILayout.Width(180));
-                        doDeleteExistingLights   = EditorGUILayout.ToggleLeft(label_ExistingLights, doDeleteExistingLights, GUILayout.Width(180));
-                        if (EditorGUI.EndChangeCheck())
+                        EditorGUILayout.Space();
+                        if (GUILayout.Button(importTextColorHex + "<size=15><b>Import</b></size></color>",
+                            buttonStyle,
+                            GUILayout.Height(150),
+                            GUILayout.Width(100)))
                         {
-                            EditorPrefs.SetBool(prefsKey_doImportLightingData, doImportLightingData);
-                            EditorPrefs.SetBool(prefsKey_doImportLights, doImportLights);
-                            EditorPrefs.SetBool(prefsKey_doImportLightProbeGroups, doImportLightProbeGroups);
-                            EditorPrefs.SetBool(prefsKey_doImportReflectionProbes, doImportReflectionProbes);
-                            EditorPrefs.SetBool(prefsKey_doDeleteExistingLights, doDeleteExistingLights);
+                            ImportSceneLightingData();
                         }
+                        EditorGUILayout.Space();
                     }
-
-                    using (new BackgroundColorScope(importButtonColor))
-                    {
-                        using (new EditorGUILayout.VerticalScope())
-                        {
-                            if (GUILayout.Button(importTextColorHex + "<size=15><b>Import</b></size></color>", buttonStyle, GUILayout.Height(60)))
-                            {
-                                ImportSceneLightingData();
-                            }
-                        }
-                    }
-                    GUILayout.Space(10);
                 }
-
                 EditorGUILayout.Space();
-
-                EditorGUILayout.LabelField(label_ImportFilePath);
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    GUILayout.Space(15);
-
-                    EditorGUI.BeginDisabledGroup(true);
-                    EditorGUILayout.TextField("", importDataPath);
-                    EditorGUI.EndDisabledGroup();
-
-                    using (new BackgroundColorScope(importButtonColor))
-                    {
-                        if (GUILayout.Button(importTextColorHex + "<b>...</b></color>", buttonStyle, GUILayout.Width(30)))
-                        {
-                            var openFolderPath = (currentSceneFolderPath != "") ? currentSceneFolderPath : Application.dataPath;
-                            var selectedImportDataPath = EditorUtility.OpenFilePanelWithFilters(
-                                                            "Select Scene Light Setting Data to Import",
-                                                            openFolderPath,
-                                                            new string[]{"SceneLightingData", "asset"});
-                            // 相対パスに変換
-                            importDataPath = selectedImportDataPath.Replace(Application.dataPath, "Assets");
-                        }
-                    }
-                    GUILayout.Space(10);
-                }
-                EditorGUI.indentLevel--;
             }
+
+            EditorGUILayout.LabelField(label_ImportFilePath);
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                GUILayout.Space(15);
+
+                EditorGUI.BeginDisabledGroup(true);
+                EditorGUILayout.TextField("", importDataPath);
+                EditorGUI.EndDisabledGroup();
+
+                using (new BackgroundColorScope(importButtonColor))
+                {
+                    if (GUILayout.Button(importTextColorHex + "<b>...</b></color>", buttonStyle, GUILayout.Width(30)))
+                    {
+                        var openFolderPath = (currentSceneFolderPath != "") ? currentSceneFolderPath : Application.dataPath;
+                        var selectedImportDataPath = EditorUtility.OpenFilePanelWithFilters(
+                                                        "Select Scene Light Setting Data to Import",
+                                                        openFolderPath,
+                                                        new string[]{"SceneLightingData", "asset"});
+                        // 相対パスに変換
+                        importDataPath = selectedImportDataPath.Replace(Application.dataPath, "Assets");
+                    }
+                }
+                GUILayout.Space(10);
+            }
+            EditorGUI.indentLevel--;
+            EditorGUILayout.Space();
         }
 
 
@@ -564,7 +611,12 @@ namespace SceneLightSettings
 
             if (doImportLightingData == true)
             {
-                SceneLightSettingExporter.SetSceneLightingData(lightingData);
+                SceneLightSettingExporter.SetSceneLightingData(
+                    lightingData,
+                    doImportLightingData_ENV,
+                    doImportLightingData_RML,
+                    doImportLightingData_LMS,
+                    doImportLightingData_OTS);
             }
 
             if (doImportLights == true)
@@ -610,7 +662,7 @@ https://anchan828.github.io/editor-manual/web/part1-editorgui.html
 Unity のエディタ拡張で FoldOut をかっこよくするのをやってみた - 凹みTips
 http://tips.hecomi.com/entry/2016/10/15/004144
 */
-        private static bool CustomFoldout(bool foldout, string content)
+        private static bool CustomFoldout(bool foldout, string content, int width = -1, int height = -1)
         {
             var style           = new GUIStyle("ShurikenModuleTitle");
             style.font          = new GUIStyle(EditorStyles.label).font;
@@ -627,6 +679,14 @@ http://tips.hecomi.com/entry/2016/10/15/004144
             var e = Event.current;
 
             var toggleRect = new Rect(rect.x + 4, rect.y + 2, 13, 13);
+            if (width > 0)
+            {
+                toggleRect.width = width;
+            }
+            if (height > 0)
+            {
+                toggleRect.height = height;
+            }
             if (e.type == EventType.Repaint)
             {
                 EditorStyles.foldout.Draw(toggleRect, false, false, foldout, false);

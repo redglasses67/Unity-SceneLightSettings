@@ -11,24 +11,24 @@ namespace SceneLightSettings
 {
     public class SceneLightSettingExporter
     {
-        private static readonly string prop_MixedBakeMode          = "m_LightmapEditorSettings.m_MixedBakeMode";
         private static readonly string prop_EnvLightMode           = "m_GISettings.m_EnvironmentLightingMode";
         private static readonly string prop_FG                     = "m_LightmapEditorSettings.m_FinalGather";
         private static readonly string prop_FGRayCount             = "m_LightmapEditorSettings.m_FinalGatherRayCount";
         private static readonly string prop_FGFilter               = "m_LightmapEditorSettings.m_FinalGatherFiltering";
-        private static readonly string prop_PVRCulling             = "m_LightmapEditorSettings.m_PVRCulling";
-#if UNITY_2019_1_OR_NEWER
-        private static readonly string prop_PVREnvMIS              = "m_LightmapEditorSettings.m_PVREnvironmentMIS";
+        private static readonly string prop_LightParams            = "m_LightmapEditorSettings.m_LightmapParameters";
+
+#if !UNITY_2018_1_OR_NEWER
+        private static readonly string prop_PVRBounce              = "m_LightmapEditorSettings.m_PVRBounces";
 #endif
 
 #if !UNITY_2018_2_OR_NEWER
+        private static readonly string prop_MixedBakeMode          = "m_LightmapEditorSettings.m_MixedBakeMode";
+
+        private static readonly string prop_PVRCulling             = "m_LightmapEditorSettings.m_PVRCulling";
+        private static readonly string prop_PVRFilteringMode       = "m_LightmapEditorSettings.m_PVRFilteringMode";
         private static readonly string prop_PVRDirectSamples       = "m_LightmapEditorSettings.m_PVRDirectSampleCount";
         private static readonly string prop_PVRIndirectSamples     = "m_LightmapEditorSettings.m_PVRSampleCount";
-#endif
-        private static readonly string prop_PVRBounce              = "m_LightmapEditorSettings.m_PVRBounces";
-        private static readonly string prop_PVRFilteringMode       = "m_LightmapEditorSettings.m_PVRFilteringMode";
 
-#if !UNITY_2018_2_OR_NEWER
         private static readonly string prop_PVRGaussRDirect        = "m_LightmapEditorSettings.m_PVRFilteringGaussRadiusDirect";
         private static readonly string prop_PVRGaussRIndirect      = "m_LightmapEditorSettings.m_PVRFilteringGaussRadiusIndirect";
         private static readonly string prop_PVRGaussRAO            = "m_LightmapEditorSettings.m_PVRFilteringGaussRadiusAO";
@@ -38,12 +38,11 @@ namespace SceneLightSettings
 #endif
 
 #if UNITY_2019_1_OR_NEWER
+        private static readonly string prop_PVREnvMIS              = "m_LightmapEditorSettings.m_PVREnvironmentMIS";
+
         private static readonly string prop_PVREnvSampleCount      = "m_LightmapEditorSettings.m_PVREnvironmentSampleCount";
         private static readonly string prop_PVREnvRefPointCount    = "m_LightmapEditorSettings.m_PVREnvironmentReferencePointCount";
-#endif
-        private static readonly string prop_LightParam             = "m_LightmapEditorSettings.m_LightmapParameters";
 
-#if UNITY_2019_1_OR_NEWER
         private static readonly string prop_ExportTrainingData     = "m_LightmapEditorSettings.m_ExportTrainingData";
         private static readonly string prop_ExtractAO              = "m_LightmapEditorSettings.m_ExtractAmbientOcclusion";
 #endif
@@ -150,6 +149,7 @@ namespace SceneLightSettings
 
 #if UNITY_2019_1_OR_NEWER
             tempLightmappingSettingsData.environmentSamples          = so_lightmapSettings.FindProperty(prop_PVREnvSampleCount).ToNullableInt();
+            tempLightmappingSettingsData.environmentRefPoints        = so_lightmapSettings.FindProperty(prop_PVREnvRefPointCount).ToNullableInt();
 #endif
 
 #if UNITY_2018_1_OR_NEWER
@@ -229,7 +229,7 @@ namespace SceneLightSettings
 #endif
             tempLightmappingSettingsData.indirectIntensity           = Lightmapping.indirectOutputScale;
             tempLightmappingSettingsData.albedoBoost                 = Lightmapping.bounceBoost;
-            tempLightmappingSettingsData.lightmapParameters          = (LightmapParameters)so_lightmapSettings.FindProperty(prop_LightParam).objectReferenceValue;
+            tempLightmappingSettingsData.lightmapParameters          = (LightmapParameters)so_lightmapSettings.FindProperty(prop_LightParams).objectReferenceValue;
 
 #if UNITY_2019_1_OR_NEWER
             tempLightmappingSettingsData.exportTrainingData          = so_lightmapSettings.FindProperty(prop_ExportTrainingData).ToNullableBool();
@@ -461,8 +461,21 @@ namespace SceneLightSettings
         }
 
 
-        public static void SetSceneLightingData(SceneLightingData importSLD)
+        public static void SetSceneLightingData(
+            SceneLightingData importSLD,
+            bool doImportEnviromentData,
+            bool doImportRealtimeAndMixedLightingData,
+            bool doImportLightmappingSettingsData,
+            bool doImportOtherSettingsData)
         {
+            if (doImportEnviromentData == false
+            &&  doImportRealtimeAndMixedLightingData == false
+            &&  doImportLightmappingSettingsData == false
+            &&  doImportOtherSettingsData == false)
+            {
+                return;
+            }
+
             var tempEnvironmentData          = importSLD.environmentData;
             var tempLightingData             = importSLD.lightingData;
             var tempLightmappingSettingsData = importSLD.lightmappingSettingsData;
@@ -474,158 +487,171 @@ namespace SceneLightSettings
             var so_renderSettings   = GetSerializedRenderSettingsObject();
             so_renderSettings.Update();
 
-            // Environment ========================================================================
-            RenderSettings.skybox                                       = tempEnvironmentData.skyboxMaterial;
-            RenderSettings.sun                                          = tempEnvironmentData.sunSource;
-            RenderSettings.ambientMode                                  = tempEnvironmentData.lightingSource;
-            RenderSettings.ambientIntensity                             = tempEnvironmentData.lightingIntensityMultiplier;
-            so_lightmapSettings.FindProperty(prop_EnvLightMode).SetSerializedProperty(tempEnvironmentData.ambientMode);
-            RenderSettings.ambientSkyColor                              = tempEnvironmentData.skyColor;
-            RenderSettings.ambientEquatorColor                          = tempEnvironmentData.equatorColor;
-            RenderSettings.ambientGroundColor                           = tempEnvironmentData.groundColor;
-            RenderSettings.ambientLight                                 = tempEnvironmentData.ambientColor;
-            RenderSettings.defaultReflectionMode                        = tempEnvironmentData.refSource;
-            RenderSettings.defaultReflectionResolution                  = tempEnvironmentData.refResolution;
-            LightmapEditorSettings.reflectionCubemapCompression         = tempEnvironmentData.refCompression;
-            RenderSettings.reflectionIntensity                          = tempEnvironmentData.refIntensityMultiplier;
-            RenderSettings.reflectionBounces                            = tempEnvironmentData.refBounces;
-            RenderSettings.customReflection                             = tempEnvironmentData.refCubemap;
+            if (doImportEnviromentData == true)
+            {
+                // Environment ========================================================================
+                RenderSettings.skybox                                       = tempEnvironmentData.skyboxMaterial;
+                RenderSettings.sun                                          = tempEnvironmentData.sunSource;
+                RenderSettings.ambientMode                                  = tempEnvironmentData.lightingSource;
+                RenderSettings.ambientIntensity                             = tempEnvironmentData.lightingIntensityMultiplier;
+                so_lightmapSettings.FindProperty(prop_EnvLightMode).SetSerializedProperty(tempEnvironmentData.ambientMode);
+                RenderSettings.ambientSkyColor                              = tempEnvironmentData.skyColor;
+                RenderSettings.ambientEquatorColor                          = tempEnvironmentData.equatorColor;
+                RenderSettings.ambientGroundColor                           = tempEnvironmentData.groundColor;
+                RenderSettings.ambientLight                                 = tempEnvironmentData.ambientColor;
+                RenderSettings.defaultReflectionMode                        = tempEnvironmentData.refSource;
+                RenderSettings.defaultReflectionResolution                  = tempEnvironmentData.refResolution;
+                LightmapEditorSettings.reflectionCubemapCompression         = tempEnvironmentData.refCompression;
+                RenderSettings.reflectionIntensity                          = tempEnvironmentData.refIntensityMultiplier;
+                RenderSettings.reflectionBounces                            = tempEnvironmentData.refBounces;
+                RenderSettings.customReflection                             = tempEnvironmentData.refCubemap;
+            }
 
-            // Realtime & Mixed Lighting ==========================================================
-            Lightmapping.realtimeGI                                     = tempLightingData.realtimeGlobalIllumination;
-            Lightmapping.bakedGI                                        = tempLightingData.bakedGlobalIllumination;
+            if (doImportRealtimeAndMixedLightingData == true)
+            {
+                // Realtime & Mixed Lighting ==========================================================
+                Lightmapping.realtimeGI                                     = tempLightingData.realtimeGlobalIllumination;
+                Lightmapping.bakedGI                                        = tempLightingData.bakedGlobalIllumination;
 #if UNITY_2018_2_OR_NEWER
-            LightmapEditorSettings.mixedBakeMode                        = tempLightingData.lightingMode;
+                LightmapEditorSettings.mixedBakeMode                        = tempLightingData.lightingMode;
 #else
-            so_lightmapSettings.FindProperty(prop_MixedBakeMode).SetSerializedProperty((int)tempLightingData.lightingMode);
+                so_lightmapSettings.FindProperty(prop_MixedBakeMode).SetSerializedProperty((int)tempLightingData.lightingMode);
 #endif
-            RenderSettings.subtractiveShadowColor                       = tempLightingData.realtimeShadowColor;
+                RenderSettings.subtractiveShadowColor                       = tempLightingData.realtimeShadowColor;
+            }
 
-            // Lightmapping Settings ==============================================================
-            LightmapEditorSettings.lightmapper                          = tempLightmappingSettingsData.lightmapper;
-            so_lightmapSettings.FindProperty(prop_FG).SetSerializedProperty(tempLightmappingSettingsData.finalGather);
-            so_lightmapSettings.FindProperty(prop_FGRayCount).SetSerializedProperty(tempLightmappingSettingsData.finalGatherRayCount);
-            so_lightmapSettings.FindProperty(prop_FGFilter).SetSerializedProperty(tempLightmappingSettingsData.finalGatherDenoising);
+            if (doImportLightmappingSettingsData == true)
+            {
+                // Lightmapping Settings ==============================================================
+                LightmapEditorSettings.lightmapper                          = tempLightmappingSettingsData.lightmapper;
+                so_lightmapSettings.FindProperty(prop_FG).SetSerializedProperty(tempLightmappingSettingsData.finalGather);
+                so_lightmapSettings.FindProperty(prop_FGRayCount).SetSerializedProperty(tempLightmappingSettingsData.finalGatherRayCount);
+                so_lightmapSettings.FindProperty(prop_FGFilter).SetSerializedProperty(tempLightmappingSettingsData.finalGatherDenoising);
 #if UNITY_2018_2_OR_NEWER
-            LightmapEditorSettings.prioritizeView                       = tempLightmappingSettingsData.prioritizeView;
+                LightmapEditorSettings.prioritizeView                       = tempLightmappingSettingsData.prioritizeView;
 #else
-            so_lightmapSettings.FindProperty(prop_PVRCulling).SetSerializedProperty(tempLightmappingSettingsData.prioritizeView);
+                so_lightmapSettings.FindProperty(prop_PVRCulling).SetSerializedProperty(tempLightmappingSettingsData.prioritizeView);
 #endif
 
 #if UNITY_2019_1_OR_NEWER
-            so_lightmapSettings.FindProperty(prop_PVREnvMIS).SetSerializedProperty(tempLightmappingSettingsData.multipleImportanceSampling);
+                so_lightmapSettings.FindProperty(prop_PVREnvMIS).SetSerializedProperty(tempLightmappingSettingsData.multipleImportanceSampling);
 #endif
 
 #if UNITY_2018_2_OR_NEWER
-            LightmapEditorSettings.directSampleCount                    = tempLightmappingSettingsData.directSamples;
-            LightmapEditorSettings.indirectSampleCount                  = tempLightmappingSettingsData.indirectSamples;
+                LightmapEditorSettings.directSampleCount                    = tempLightmappingSettingsData.directSamples;
+                LightmapEditorSettings.indirectSampleCount                  = tempLightmappingSettingsData.indirectSamples;
 #else
-            so_lightmapSettings.FindProperty(prop_PVRDirectSamples).SetSerializedProperty(tempLightmappingSettingsData.directSamples);
-            so_lightmapSettings.FindProperty(prop_PVRIndirectSamples).SetSerializedProperty(tempLightmappingSettingsData.indirectSamples);
+                so_lightmapSettings.FindProperty(prop_PVRDirectSamples).SetSerializedProperty(tempLightmappingSettingsData.directSamples);
+                so_lightmapSettings.FindProperty(prop_PVRIndirectSamples).SetSerializedProperty(tempLightmappingSettingsData.indirectSamples);
 #endif
 
 #if UNITY_2019_1_OR_NEWER
-            so_lightmapSettings.FindProperty(prop_PVREnvSampleCount).SetSerializedProperty(tempLightmappingSettingsData.environmentSamples);
+                so_lightmapSettings.FindProperty(prop_PVREnvSampleCount).SetSerializedProperty(tempLightmappingSettingsData.environmentSamples);
+                so_lightmapSettings.FindProperty(prop_PVREnvRefPointCount).SetSerializedProperty(tempLightmappingSettingsData.environmentRefPoints);
 #endif
 
 #if UNITY_2018_1_OR_NEWER
-            LightmapEditorSettings.bounces                              = tempLightmappingSettingsData.bounces;
+                LightmapEditorSettings.bounces                              = tempLightmappingSettingsData.bounces;
 #else
-            so_lightmapSettings.FindProperty(prop_PVRBounce).SetSerializedProperty(tempLightmappingSettingsData.bounces);
+                so_lightmapSettings.FindProperty(prop_PVRBounce).SetSerializedProperty(tempLightmappingSettingsData.bounces);
 #endif
 
 #if UNITY_2018_2_OR_NEWER
-            LightmapEditorSettings.filteringMode                        = tempLightmappingSettingsData.filtering;
+                LightmapEditorSettings.filteringMode                        = tempLightmappingSettingsData.filtering;
 #else
-            so_lightmapSettings.FindProperty(prop_PVRFilteringMode).SetSerializedProperty((int)tempLightmappingSettingsData.filtering);
+                so_lightmapSettings.FindProperty(prop_PVRFilteringMode).SetSerializedProperty((int)tempLightmappingSettingsData.filtering);
 #endif
 
 #if UNITY_2019_1_OR_NEWER
-            LightmapEditorSettings.denoiserTypeDirect                   = tempLightmappingSettingsData.directDenoiser;
+                LightmapEditorSettings.denoiserTypeDirect                   = tempLightmappingSettingsData.directDenoiser;
 #endif
 
-            LightmapEditorSettings.filterTypeDirect                     = tempLightmappingSettingsData.directFilter;
+                LightmapEditorSettings.filterTypeDirect                     = tempLightmappingSettingsData.directFilter;
 
 #if UNITY_2018_2_OR_NEWER
-            LightmapEditorSettings.filteringAtrousPositionSigmaDirect   = tempLightmappingSettingsData.directSigma;
-            LightmapEditorSettings.filteringGaussRadiusDirect           = tempLightmappingSettingsData.directRadius;
+                LightmapEditorSettings.filteringAtrousPositionSigmaDirect   = tempLightmappingSettingsData.directSigma;
+                LightmapEditorSettings.filteringGaussRadiusDirect           = tempLightmappingSettingsData.directRadius;
 #else
-            so_lightmapSettings.FindProperty(prop_PVRAtrousDirectSigma).SetSerializedProperty(tempLightmappingSettingsData.directSigma);
-            so_lightmapSettings.FindProperty(prop_PVRGaussRDirect).SetSerializedProperty(tempLightmappingSettingsData.directRadius);
+                so_lightmapSettings.FindProperty(prop_PVRAtrousDirectSigma).SetSerializedProperty(tempLightmappingSettingsData.directSigma);
+                so_lightmapSettings.FindProperty(prop_PVRGaussRDirect).SetSerializedProperty(tempLightmappingSettingsData.directRadius);
 #endif
 
 #if UNITY_2019_1_OR_NEWER
-            LightmapEditorSettings.denoiserTypeIndirect                 = tempLightmappingSettingsData.indirectDenoiser;
+                LightmapEditorSettings.denoiserTypeIndirect                 = tempLightmappingSettingsData.indirectDenoiser;
 #endif
 
-            LightmapEditorSettings.filterTypeIndirect                   = tempLightmappingSettingsData.indirectFilter;
+                LightmapEditorSettings.filterTypeIndirect                   = tempLightmappingSettingsData.indirectFilter;
 
 #if UNITY_2018_2_OR_NEWER
-            LightmapEditorSettings.filteringAtrousPositionSigmaIndirect = tempLightmappingSettingsData.indirectSigma;
-            LightmapEditorSettings.filteringGaussRadiusIndirect         = tempLightmappingSettingsData.indirectRadius;
+                LightmapEditorSettings.filteringAtrousPositionSigmaIndirect = tempLightmappingSettingsData.indirectSigma;
+                LightmapEditorSettings.filteringGaussRadiusIndirect         = tempLightmappingSettingsData.indirectRadius;
 #else
-            so_lightmapSettings.FindProperty(prop_PVRAtrousIndirectSigma).SetSerializedProperty(tempLightmappingSettingsData.indirectSigma);
-            so_lightmapSettings.FindProperty(prop_PVRGaussRIndirect).SetSerializedProperty(tempLightmappingSettingsData.indirectRadius);
+                so_lightmapSettings.FindProperty(prop_PVRAtrousIndirectSigma).SetSerializedProperty(tempLightmappingSettingsData.indirectSigma);
+                so_lightmapSettings.FindProperty(prop_PVRGaussRIndirect).SetSerializedProperty(tempLightmappingSettingsData.indirectRadius);
 #endif
 
 #if UNITY_2019_1_OR_NEWER
-            LightmapEditorSettings.denoiserTypeAO                       = tempLightmappingSettingsData.aoDenoiser;
+                LightmapEditorSettings.denoiserTypeAO                       = tempLightmappingSettingsData.aoDenoiser;
 #endif
 
-            LightmapEditorSettings.filterTypeAO                         = tempLightmappingSettingsData.aoFilter;
+                LightmapEditorSettings.filterTypeAO                         = tempLightmappingSettingsData.aoFilter;
 
 #if UNITY_2018_2_OR_NEWER
-            LightmapEditorSettings.filteringAtrousPositionSigmaAO       = tempLightmappingSettingsData.aoSigma;
-            LightmapEditorSettings.filteringGaussRadiusAO               = tempLightmappingSettingsData.aoRadius;
+                LightmapEditorSettings.filteringAtrousPositionSigmaAO       = tempLightmappingSettingsData.aoSigma;
+                LightmapEditorSettings.filteringGaussRadiusAO               = tempLightmappingSettingsData.aoRadius;
 #else
-            so_lightmapSettings.FindProperty(prop_PVRAtrousAOSigma).SetSerializedProperty(tempLightmappingSettingsData.aoSigma);
-            so_lightmapSettings.FindProperty(prop_PVRGaussRAO).SetSerializedProperty(tempLightmappingSettingsData.aoRadius);
+                so_lightmapSettings.FindProperty(prop_PVRAtrousAOSigma).SetSerializedProperty(tempLightmappingSettingsData.aoSigma);
+                so_lightmapSettings.FindProperty(prop_PVRGaussRAO).SetSerializedProperty(tempLightmappingSettingsData.aoRadius);
 #endif
 
-            LightmapEditorSettings.realtimeResolution                   = tempLightmappingSettingsData.indirectResolution;
-            LightmapEditorSettings.bakeResolution                       = tempLightmappingSettingsData.lightmapResolution;
-            LightmapEditorSettings.padding                              = tempLightmappingSettingsData.lightmapPadding;
+                LightmapEditorSettings.realtimeResolution                   = tempLightmappingSettingsData.indirectResolution;
+                LightmapEditorSettings.bakeResolution                       = tempLightmappingSettingsData.lightmapResolution;
+                LightmapEditorSettings.padding                              = tempLightmappingSettingsData.lightmapPadding;
 
 #if UNITY_2018_1_OR_NEWER
-            LightmapEditorSettings.maxAtlasSize                         = tempLightmappingSettingsData.lightmapSize;
+                LightmapEditorSettings.maxAtlasSize                         = tempLightmappingSettingsData.lightmapSize;
 #else
-            LightmapEditorSettings.maxAtlasWidth                        = tempLightmappingSettingsData.lightmapSize;
-            LightmapEditorSettings.maxAtlasHeight                       = tempLightmappingSettingsData.lightmapSize;
+                LightmapEditorSettings.maxAtlasWidth                        = tempLightmappingSettingsData.lightmapSize;
+                LightmapEditorSettings.maxAtlasHeight                       = tempLightmappingSettingsData.lightmapSize;
 #endif
 
-            LightmapEditorSettings.textureCompression                   = tempLightmappingSettingsData.compressLightmaps;
-            LightmapEditorSettings.enableAmbientOcclusion               = tempLightmappingSettingsData.enableAO;
-            LightmapEditorSettings.aoMaxDistance                        = tempLightmappingSettingsData.aoMaxDistance;
-            LightmapEditorSettings.aoExponentIndirect                   = tempLightmappingSettingsData.aoIndirectContribution;
-            LightmapEditorSettings.aoExponentDirect                     = tempLightmappingSettingsData.aoDirectContribution;
+                LightmapEditorSettings.textureCompression                   = tempLightmappingSettingsData.compressLightmaps;
+                LightmapEditorSettings.enableAmbientOcclusion               = tempLightmappingSettingsData.enableAO;
+                LightmapEditorSettings.aoMaxDistance                        = tempLightmappingSettingsData.aoMaxDistance;
+                LightmapEditorSettings.aoExponentIndirect                   = tempLightmappingSettingsData.aoIndirectContribution;
+                LightmapEditorSettings.aoExponentDirect                     = tempLightmappingSettingsData.aoDirectContribution;
 
 #if UNITY_2018_1_OR_NEWER
-            LightmapEditorSettings.lightmapsMode                        = tempLightmappingSettingsData.directionalMode;
+                LightmapEditorSettings.lightmapsMode                        = tempLightmappingSettingsData.directionalMode;
 #else
-            LightmapSettings.lightmapsMode                              = tempLightmappingSettingsData.directionalMode;
+                LightmapSettings.lightmapsMode                              = tempLightmappingSettingsData.directionalMode;
 #endif
 
-            Lightmapping.indirectOutputScale                            = tempLightmappingSettingsData.indirectIntensity;
-            Lightmapping.bounceBoost                                    = tempLightmappingSettingsData.albedoBoost;
-            so_lightmapSettings.FindProperty(prop_LightParam).SetSerializedProperty(tempLightmappingSettingsData.lightmapParameters);
+                Lightmapping.indirectOutputScale                            = tempLightmappingSettingsData.indirectIntensity;
+                Lightmapping.bounceBoost                                    = tempLightmappingSettingsData.albedoBoost;
+                so_lightmapSettings.FindProperty(prop_LightParams).SetSerializedProperty(tempLightmappingSettingsData.lightmapParameters);
 
 #if UNITY_2019_1_OR_NEWER
-            so_lightmapSettings.FindProperty(prop_ExportTrainingData).SetSerializedProperty(tempLightmappingSettingsData.exportTrainingData);
-            so_lightmapSettings.FindProperty(prop_ExtractAO).SetSerializedProperty(tempLightmappingSettingsData.extractAmbientOcclusion);
+                so_lightmapSettings.FindProperty(prop_ExportTrainingData).SetSerializedProperty(tempLightmappingSettingsData.exportTrainingData);
+                so_lightmapSettings.FindProperty(prop_ExtractAO).SetSerializedProperty(tempLightmappingSettingsData.extractAmbientOcclusion);
 #endif
+            }
 
-            // Other Settings =====================================================================
-            RenderSettings.fog                                          = tempOtherSettingsData.fog;
-            RenderSettings.fogColor                                     = tempOtherSettingsData.fogColor;
-            RenderSettings.fogMode                                      = tempOtherSettingsData.fogMode;
-            RenderSettings.fogDensity                                   = tempOtherSettingsData.fogDensity;
-            RenderSettings.fogStartDistance                             = tempOtherSettingsData.fogStart;
-            RenderSettings.fogEndDistance                               = tempOtherSettingsData.fogEnd;
-            so_renderSettings.FindProperty(prop_HaloTex).SetSerializedProperty(tempOtherSettingsData.haloTexture);
-            RenderSettings.haloStrength                                 = tempOtherSettingsData.haloStrength;
-            RenderSettings.flareFadeSpeed                               = tempOtherSettingsData.flareFadeSpeed;
-            RenderSettings.flareStrength                                = tempOtherSettingsData.flareStrength;
-            so_renderSettings.FindProperty(prop_SpotCookie).SetSerializedProperty(tempOtherSettingsData.spotCookie);
+            if (doImportOtherSettingsData == true)
+            {
+                // Other Settings =====================================================================
+                RenderSettings.fog                                          = tempOtherSettingsData.fog;
+                RenderSettings.fogColor                                     = tempOtherSettingsData.fogColor;
+                RenderSettings.fogMode                                      = tempOtherSettingsData.fogMode;
+                RenderSettings.fogDensity                                   = tempOtherSettingsData.fogDensity;
+                RenderSettings.fogStartDistance                             = tempOtherSettingsData.fogStart;
+                RenderSettings.fogEndDistance                               = tempOtherSettingsData.fogEnd;
+                so_renderSettings.FindProperty(prop_HaloTex).SetSerializedProperty(tempOtherSettingsData.haloTexture);
+                RenderSettings.haloStrength                                 = tempOtherSettingsData.haloStrength;
+                RenderSettings.flareFadeSpeed                               = tempOtherSettingsData.flareFadeSpeed;
+                RenderSettings.flareStrength                                = tempOtherSettingsData.flareStrength;
+                so_renderSettings.FindProperty(prop_SpotCookie).SetSerializedProperty(tempOtherSettingsData.spotCookie);
+            }
 
             so_lightmapSettings.ApplyModifiedProperties();
             so_renderSettings.ApplyModifiedProperties();

@@ -52,6 +52,7 @@ namespace SceneLightSettings
         public int directSamples;
         public int indirectSamples;
         public NullableInt environmentSamples;
+        public NullableInt environmentRefPoints;
         public int bounces;
 
         public LightmapEditorSettings.FilterMode filtering;
