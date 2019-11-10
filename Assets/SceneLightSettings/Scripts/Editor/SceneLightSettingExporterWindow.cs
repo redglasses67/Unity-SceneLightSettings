@@ -80,6 +80,7 @@ namespace SceneLightSettings
         private static string message_DoneExpoted;
         private static string message_EmptyImportPath;
         private static string message_NoLoadLightingData;
+        private static string message_DoneImpoted;
 #endregion
 
 #region Window の設定関連
@@ -262,19 +263,22 @@ namespace SceneLightSettings
 
 
             message_CreateDir = (Application.systemLanguage == SystemLanguage.Japanese) ?
-                "SceneLightingData フォルダを作成しました." : "Created SceneLightingData Folder";
+                "SceneLightingData フォルダを作成しました." : "Created SceneLightingData Folder.";
 
             message_NoLightingData = (Application.systemLanguage == SystemLanguage.Japanese) ?
-                "SceneLightingData が取得できませんでした..." : "Did not get SceneLightingData";
+                "SceneLightingData が取得できませんでした..." : "Did not get SceneLightingData ...";
 
             message_DoneExpoted = (Application.systemLanguage == SystemLanguage.Japanese) ?
-                "SceneLightingData を書き出しました" : "Created SceneLightingData";
+                "SceneLightingData を書き出しました!" : "Created SceneLightingData";
 
             message_EmptyImportPath = (Application.systemLanguage == SystemLanguage.Japanese) ?
-                "Import File Path が空です." : "Import File Path is empty.";
+                "Import File Path が空です..." : "Import File Path is empty ...";
 
             message_NoLoadLightingData = (Application.systemLanguage == SystemLanguage.Japanese) ?
-                "SceneLightingData が読み込めませんでした..." : "Did not load SceneLightingData";
+                "SceneLightingData が読み込めませんでした..." : "Did not load SceneLightingData ...";
+
+            message_DoneImpoted = (Application.systemLanguage == SystemLanguage.Japanese) ?
+                "SceneLightingData を読み込みました!" : "Created SceneLightingData.";
         }
 
         private void SetTextColors()
@@ -373,7 +377,7 @@ namespace SceneLightSettings
                 EditorGUILayout.Space();
             }
 
-            GUILayout.Box("", GUILayout.ExpandWidth(true), GUILayout.Height(1));
+            DrawUILine(Color.yellow);
 
             using (new BackgroundColorScope(exportGroupColor))
             {
@@ -575,7 +579,7 @@ namespace SceneLightSettings
             Debug.Log(message_DoneExpoted + "exportDataPath = " + exportDataPath, lightingData);
             EditorUtility.DisplayDialog(
                 "Scene Light Setting Export / Import",
-                message_DoneExpoted + "\n\nexportDataPath\n>> " + exportDataPath,
+                message_DoneExpoted + "\n\nExportDataPath\n>>    " + exportDataPath,
                 "OK");
         }
 
@@ -597,7 +601,7 @@ namespace SceneLightSettings
                 Debug.LogWarning(message_NoLoadLightingData + "importDataPath = " + importDataPath);
                 EditorUtility.DisplayDialog(
                     "Scene Light Setting Export / Import",
-                    message_NoLoadLightingData + "\n\nimportDataPath\n>> " + importDataPath,
+                    message_NoLoadLightingData + "\n\nImportDataPath\n>>    " + importDataPath,
                     "OK");
                 return;
             }
@@ -634,7 +638,12 @@ namespace SceneLightSettings
                 SceneLightSettingExporter.SetSceneReflectionProbes(lightingData);
             }
 
-            EditorSceneManager.MarkSceneDirty(currentScene); 
+            EditorSceneManager.MarkSceneDirty(currentScene);
+            Debug.Log(message_DoneImpoted + "importDataPath = " + importDataPath, lightingData);
+            EditorUtility.DisplayDialog(
+                "Scene Light Setting Export / Import",
+                message_DoneImpoted + "\n\nImportDataPath\n>>    " + importDataPath,
+                "OK");
         }
 
 /*
@@ -700,6 +709,21 @@ http://tips.hecomi.com/entry/2016/10/15/004144
             }
 
             return foldout;
+        }
+
+/*
+参考サイト
+Horizontal Line in Editor Window - Unity Forum
+https://forum.unity.com/threads/horizontal-line-in-editor-window.520812/
+*/
+        public static void DrawUILine(Color color, int thickness = 2, int padding = 10)
+        {
+            var rect = EditorGUILayout.GetControlRect(GUILayout.Height(padding+thickness));
+            rect.height = thickness;
+            rect.y += padding/2;
+            rect.x -= 2;
+            rect.width += 6;
+            EditorGUI.DrawRect(rect, color);
         }
     }
 }

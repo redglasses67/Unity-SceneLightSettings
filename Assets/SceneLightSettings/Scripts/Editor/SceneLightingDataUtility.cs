@@ -219,37 +219,57 @@ namespace SceneLightSettings
         {
             if (sp == null) { return; }
             if (sp.propertyType != SerializedPropertyType.Float) { return; }
+            sp.serializedObject.Update();
             sp.floatValue = floatValue;
+            sp.serializedObject.ApplyModifiedProperties();
         }
         public static void SetSerializedProperty(this SerializedProperty sp, int intValue)
         {
             if (sp == null) { return; }
             if (sp.propertyType != SerializedPropertyType.Integer) { return; }
+            sp.serializedObject.Update();
             sp.intValue = intValue;
+            sp.serializedObject.ApplyModifiedProperties();
         }
         public static void SetSerializedProperty(this SerializedProperty sp, NullableInt nullableInt)
         {
             if (sp == null || nullableInt.hasValue == false) { return; }
             if (sp.propertyType != SerializedPropertyType.Integer) { return; }
+            sp.serializedObject.Update();
             sp.intValue = nullableInt.value;
+            sp.serializedObject.ApplyModifiedProperties();
         }
         public static void SetSerializedProperty(this SerializedProperty sp, bool boolValue)
         {
             if (sp == null) { return; }
             if (sp.propertyType != SerializedPropertyType.Boolean) { return; }
+            sp.serializedObject.Update();
             sp.boolValue = boolValue;
+            sp.serializedObject.ApplyModifiedProperties();
         }
         public static void SetSerializedProperty(this SerializedProperty sp, NullableBool nullableBool)
         {
             if (sp == null || nullableBool.hasValue == false) { return; }
             if (sp.propertyType != SerializedPropertyType.Boolean) { return; }
+            sp.serializedObject.Update();
             sp.boolValue = nullableBool.value;
+            sp.serializedObject.ApplyModifiedProperties();
         }
         public static void SetSerializedProperty(this SerializedProperty sp, Object obj)
         {
             if (sp == null || obj == null) { return; }
             if (sp.propertyType != SerializedPropertyType.ObjectReference) { return; }
+            sp.serializedObject.Update();
             sp.objectReferenceValue = obj;
+            sp.serializedObject.ApplyModifiedProperties();
+        }
+        public static void SetSerializedProperty(this SerializedProperty sp, Color colorValue)
+        {
+            if (sp == null) { return; }
+            if (sp.propertyType != SerializedPropertyType.Float) { return; }
+            sp.serializedObject.Update();
+            sp.colorValue = colorValue;
+            sp.serializedObject.ApplyModifiedProperties();
         }
     }
 #endregion

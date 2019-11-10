@@ -15,10 +15,15 @@ namespace SceneLightSettings
         private static readonly string prop_FG                     = "m_LightmapEditorSettings.m_FinalGather";
         private static readonly string prop_FGRayCount             = "m_LightmapEditorSettings.m_FinalGatherRayCount";
         private static readonly string prop_FGFilter               = "m_LightmapEditorSettings.m_FinalGatherFiltering";
-        private static readonly string prop_LightParams            = "m_LightmapEditorSettings.m_LightmapParameters";
+        private static readonly string prop_LightmapParams         = "m_LightmapEditorSettings.m_LightmapParameters";
 
 #if !UNITY_2018_1_OR_NEWER
         private static readonly string prop_PVRBounce              = "m_LightmapEditorSettings.m_PVRBounces";
+		private static readonly string prop_LightmapsBakeMode      = "m_LightmapEditorSettings.m_LightmapsBakeMode";
+		private static readonly string prop_SubtractiveShadowColor = "m_SubtractiveShadowColor";
+		// private static readonly string prop_SubtractiveShadowColG  = "m_SubtractiveShadowColor.g";
+		// private static readonly string prop_SubtractiveShadowColB  = "m_SubtractiveShadowColor.b";
+		// private static readonly string prop_SubtractiveShadowColA  = "m_SubtractiveShadowColor.a";
 #endif
 
 #if !UNITY_2018_2_OR_NEWER
@@ -225,11 +230,12 @@ namespace SceneLightSettings
 #if UNITY_2018_1_OR_NEWER
             tempLightmappingSettingsData.directionalMode             = LightmapEditorSettings.lightmapsMode;
 #else
-            tempLightmappingSettingsData.directionalMode             = LightmapSettings.lightmapsMode;
+            // tempLightmappingSettingsData.directionalMode             = LightmapSettings.lightmapsMode; // 2017.4.34で、こっちだときちんと取得できなかった… 
+			tempLightmappingSettingsData.directionalMode             = (LightmapsMode)so_lightmapSettings.FindProperty(prop_LightmapsBakeMode).intValue;
 #endif
             tempLightmappingSettingsData.indirectIntensity           = Lightmapping.indirectOutputScale;
             tempLightmappingSettingsData.albedoBoost                 = Lightmapping.bounceBoost;
-            tempLightmappingSettingsData.lightmapParameters          = (LightmapParameters)so_lightmapSettings.FindProperty(prop_LightParams).objectReferenceValue;
+            tempLightmappingSettingsData.lightmapParameters          = (LightmapParameters)so_lightmapSettings.FindProperty(prop_LightmapParams).objectReferenceValue;
 
 #if UNITY_2019_1_OR_NEWER
             tempLightmappingSettingsData.exportTrainingData          = so_lightmapSettings.FindProperty(prop_ExportTrainingData).ToNullableBool();
@@ -517,7 +523,19 @@ namespace SceneLightSettings
 #else
                 so_lightmapSettings.FindProperty(prop_MixedBakeMode).SetSerializedProperty((int)tempLightingData.lightingMode);
 #endif
+
+#if UNITY_2018_1_OR_NEWER
                 RenderSettings.subtractiveShadowColor                       = tempLightingData.realtimeShadowColor;
+#else
+				Debug.Log("BEFORE prop_SubtractiveShadowColR : " + so_renderSettings.FindProperty(prop_SubtractiveShadowColor).colorValue +
+					" , tempLightingData.realtimeShadowColor = " + tempLightingData.realtimeShadowColor.r);
+				so_renderSettings.FindProperty(prop_SubtractiveShadowColor).SetSerializedProperty(tempLightingData.realtimeShadowColor);
+				// so_renderSettings.FindProperty(prop_SubtractiveShadowColG).SetSerializedProperty(tempLightingData.realtimeShadowColor.g);
+				// so_renderSettings.FindProperty(prop_SubtractiveShadowColB).SetSerializedProperty(tempLightingData.realtimeShadowColor.b);
+				// so_renderSettings.FindProperty(prop_SubtractiveShadowColA).SetSerializedProperty(tempLightingData.realtimeShadowColor.a);
+				Debug.Log("AFTER prop_SubtractiveShadowColR : " + so_renderSettings.FindProperty(prop_SubtractiveShadowColor).colorValue);
+				RenderSettings.subtractiveShadowColor                       = tempLightingData.realtimeShadowColor;
+#endif
             }
 
             if (doImportLightmappingSettingsData == true)
@@ -624,12 +642,13 @@ namespace SceneLightSettings
 #if UNITY_2018_1_OR_NEWER
                 LightmapEditorSettings.lightmapsMode                        = tempLightmappingSettingsData.directionalMode;
 #else
-                LightmapSettings.lightmapsMode                              = tempLightmappingSettingsData.directionalMode;
+				so_lightmapSettings.FindProperty(prop_LightmapsBakeMode).SetSerializedProperty((int)tempLightmappingSettingsData.directionalMode);
 #endif
 
                 Lightmapping.indirectOutputScale                            = tempLightmappingSettingsData.indirectIntensity;
                 Lightmapping.bounceBoost                                    = tempLightmappingSettingsData.albedoBoost;
-                so_lightmapSettings.FindProperty(prop_LightParams).SetSerializedProperty(tempLightmappingSettingsData.lightmapParameters);
+
+                so_lightmapSettings.FindProperty(prop_LightmapParams).SetSerializedProperty(tempLightmappingSettingsData.lightmapParameters);
 
 #if UNITY_2019_1_OR_NEWER
                 so_lightmapSettings.FindProperty(prop_ExportTrainingData).SetSerializedProperty(tempLightmappingSettingsData.exportTrainingData);
@@ -652,9 +671,13 @@ namespace SceneLightSettings
                 RenderSettings.flareStrength                                = tempOtherSettingsData.flareStrength;
                 so_renderSettings.FindProperty(prop_SpotCookie).SetSerializedProperty(tempOtherSettingsData.spotCookie);
             }
-
+			// Debug.Log("AFTER prop_SubtractiveShadowColR 2 : " + so_renderSettings.FindProperty(prop_SubtractiveShadowColR).floatValue);
+			so_lightmapSettings.Update();
             so_lightmapSettings.ApplyModifiedProperties();
+			so_renderSettings.Update();
             so_renderSettings.ApplyModifiedProperties();
+			// Debug.Log("AFTER prop_SubtractiveShadowColR 3 : " + so_renderSettings.FindProperty(prop_SubtractiveShadowColR).floatValue);
+			Debug.LogWarning("ImportSceneLightingData 3 ");
         }
 
         public static void SetSceneLights(SceneLightingData importSLD)
