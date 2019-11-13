@@ -4,6 +4,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEditor.SceneManagement;
+using System.Reflection;
 
 namespace SceneLightSettings
 {
@@ -445,7 +446,34 @@ namespace SceneLightSettings
                             GUILayout.Height(70),
                             GUILayout.Width(100)))
                         {
-                            ExportSceneLightingData();
+							
+							var color =  RenderSettings.subtractiveShadowColor;
+							Debug.Log("BEFORE subtractiveShadowColor : " + color.r + ", " + color.g + ", " + color.b +  ", " + color.a);
+                            // ExportSceneLightingData();
+							RenderSettings.subtractiveShadowColor = new Color(Random.value, Random.value, Random.value, 1f);
+							RenderSettings.fogColor               = new Color(Random.value, Random.value, Random.value, 1f);
+
+							// var lightingWindow = EditorWindow.GetWindow(typeof(UnityEditor.LightingWindow));
+							var asm = Assembly.Load("UnityEditor");
+							var pref_win_type = asm.GetType("UnityEditor.LightingWindow");
+							var lightingWindow = EditorWindow.GetWindow(pref_win_type, true, "LightingWindow");
+							var pos = lightingWindow.position;
+							
+							// EditorUtility.SetDirty(lightingWindow);
+							lightingWindow.Repaint();
+							Debug.Log("subtractiveShadowColor かえたよ");
+							lightingWindow.Close();
+							// lightingWindow.ShowUtility();
+							// lightingWindow = EditorWindow.GetWindow(pref_win_type, true, "LightingWindow");
+							lightingWindow = (EditorWindow)ScriptableObject.CreateInstance(pref_win_type); 
+							lightingWindow.Show();
+							lightingWindow.position = pos;
+
+							// so_renderSettings.FindProperty(prop_SubtractiveShadowColor).SetSerializedProperty(tempLightingData.realtimeShadowColor);
+							// so_renderSettings.FindProperty(prop_SubtractiveShadowColG).SetSerializedProperty(tempLightingData.realtimeShadowColor.g);
+							// so_renderSettings.FindProperty(prop_SubtractiveShadowColB).SetSerializedProperty(tempLightingData.realtimeShadowColor.b);
+							// so_renderSettings.FindProperty(prop_SubtractiveShadowColA).SetSerializedProperty(tempLightingData.realtimeShadowColor.a);
+							Debug.Log("AFTER subtractiveShadowColor : " + color.r + ", " + color.g + ", " + color.b +  ", " + color.a);
                         }
                     }
                 }
