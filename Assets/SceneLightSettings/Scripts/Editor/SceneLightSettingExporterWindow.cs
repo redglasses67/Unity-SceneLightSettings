@@ -8,7 +8,7 @@ using System.Reflection;
 
 namespace SceneLightSettings
 {
-    public class SceneLightSettingExporterWindow : EditorWindow
+    public class SceneLightSettingExporterWindow : EditorWindow, IHasCustomMenu
     {
 #region Window 関連 変数
         private static SceneLightSettingExporterWindow window;
@@ -120,6 +120,28 @@ namespace SceneLightSettings
             ChangeWindowMaxSize();
         }
 
+        public void AddItemsToMenu(GenericMenu menu)
+        {
+            menu.AddItem(new GUIContent("Check Serialized Properties"), false, CheckSerializedProperties);
+        }
+
+        void CheckSerializedProperties()
+        {
+            var so_lightmapSettings        = SceneLightSettingExporter.GetSerializedLightmapSettingsObject();
+            var sp_lightmapSettingsTxtPath = Application.dataPath + "/sp_lightmapSettings.txt";
+            var sw_lightmapSettings        = new StreamWriter(sp_lightmapSettingsTxtPath, false, System.Text.Encoding.GetEncoding("shift_jis"));
+            CheckSerializedProperty.GetSerializedProperties(so_lightmapSettings, ref sw_lightmapSettings);
+            sw_lightmapSettings.Close();
+
+            var so_renderSettings        = SceneLightSettingExporter.GetSerializedRenderSettingsObject();
+            var sp_renderSettingsTxtPath = Application.dataPath + "/sp_renderSettings.txt";
+            var sw_renderSettings        = new StreamWriter(sp_renderSettingsTxtPath, false, System.Text.Encoding.GetEncoding("shift_jis"));
+            CheckSerializedProperty.GetSerializedProperties(so_renderSettings, ref sw_renderSettings);
+            sw_renderSettings.Close();
+
+            Debug.Log("lightmapSettings と renderSettings の SerializedProperty のリストをテキストとして Assets フォルダに保存しました。");
+        }
+
         private static void ChangeWindowMaxSize()
         {
             if (isExpandedExportLightSetting == false && isExpandedImportLightSetting == false)
@@ -143,14 +165,14 @@ namespace SceneLightSettings
         private static void GetSceneInfo(Scene scene)
         {
             currentScene           = scene;
-            currentSceneName       = currentScene.name;
+            currentSceneName       = (scene.name != "") ? scene.name : " < Untitled > ";
             currentSceneFolderPath = (scene.path != "") ? Path.GetDirectoryName(scene.path) : "";
         }
 
         private static void ResetSceneInfo(Scene scene, NewSceneSetup setup, NewSceneMode mode)
         {
             currentScene           = scene;
-            currentSceneName       = "";
+            currentSceneName       = " < Untitled > ";
             currentSceneFolderPath = "";
         }
 
@@ -171,6 +193,11 @@ namespace SceneLightSettings
             SetTextColors();
         }
 
+        private void OnFocus()
+        {
+            var activeScene = EditorSceneManager.GetActiveScene();
+            GetSceneInfo(activeScene);
+        }
 
         private void OnDisable()
         {
@@ -382,7 +409,7 @@ namespace SceneLightSettings
 
             using (new BackgroundColorScope(exportGroupColor))
             {
-                using (new EditorGUILayout.VerticalScope("Box"))
+                using (new EditorGUILayout.VerticalScope(GUI.skin.box))
                 {
                     ExportLightSettingGroup();
                 }
@@ -392,7 +419,7 @@ namespace SceneLightSettings
 
             using (new BackgroundColorScope(importGroupColor))
             {
-                using (new EditorGUILayout.VerticalScope("Box"))
+                using (new EditorGUILayout.VerticalScope(GUI.skin.box))
                 {
                     ImportLightSettingGroup();
                 }
@@ -405,9 +432,11 @@ namespace SceneLightSettings
         private void ExportLightSettingGroup()
         {
             EditorGUI.BeginChangeCheck();
-            isExpandedExportLightSetting = CustomFoldout(
-                isExpandedExportLightSetting,
-                exportTextColorHex + "<b>Export Light Setting</b></color>");
+            {
+                isExpandedExportLightSetting = CustomFoldout(
+                    isExpandedExportLightSetting,
+                    exportTextColorHex + "<b>Export Light Setting</b></color>");
+            }
             if (EditorGUI.EndChangeCheck())
             {
                 EditorPrefs.SetBool(prefsKey_isExpandedExportLightSetting, isExpandedExportLightSetting);
@@ -424,10 +453,12 @@ namespace SceneLightSettings
                 using (new EditorGUILayout.VerticalScope())
                 {
                     EditorGUI.BeginChangeCheck();
-                    doExportLightingData     = EditorGUILayout.ToggleLeft(label_LightingData, doExportLightingData);
-                    doExportLights           = EditorGUILayout.ToggleLeft(label_Lights, doExportLights);
-                    doExportLightProbeGroups = EditorGUILayout.ToggleLeft(label_LightProbeGroups, doExportLightProbeGroups);
-                    doExportReflectionProbes = EditorGUILayout.ToggleLeft(label_ReflectionProbes, doExportReflectionProbes);
+                    {
+                        doExportLightingData     = EditorGUILayout.ToggleLeft(label_LightingData, doExportLightingData);
+                        doExportLights           = EditorGUILayout.ToggleLeft(label_Lights, doExportLights);
+                        doExportLightProbeGroups = EditorGUILayout.ToggleLeft(label_LightProbeGroups, doExportLightProbeGroups);
+                        doExportReflectionProbes = EditorGUILayout.ToggleLeft(label_ReflectionProbes, doExportReflectionProbes);
+                    }
                     if (EditorGUI.EndChangeCheck())
                     {
                         EditorPrefs.SetBool(prefsKey_doExportLightingData, doExportLightingData);
@@ -446,34 +477,7 @@ namespace SceneLightSettings
                             GUILayout.Height(70),
                             GUILayout.Width(100)))
                         {
-							
-							var color =  RenderSettings.subtractiveShadowColor;
-							Debug.Log("BEFORE subtractiveShadowColor : " + color.r + ", " + color.g + ", " + color.b +  ", " + color.a);
-                            // ExportSceneLightingData();
-							RenderSettings.subtractiveShadowColor = new Color(Random.value, Random.value, Random.value, 1f);
-							RenderSettings.fogColor               = new Color(Random.value, Random.value, Random.value, 1f);
-
-							// var lightingWindow = EditorWindow.GetWindow(typeof(UnityEditor.LightingWindow));
-							var asm = Assembly.Load("UnityEditor");
-							var pref_win_type = asm.GetType("UnityEditor.LightingWindow");
-							var lightingWindow = EditorWindow.GetWindow(pref_win_type, true, "LightingWindow");
-							var pos = lightingWindow.position;
-							
-							// EditorUtility.SetDirty(lightingWindow);
-							lightingWindow.Repaint();
-							Debug.Log("subtractiveShadowColor かえたよ");
-							lightingWindow.Close();
-							// lightingWindow.ShowUtility();
-							// lightingWindow = EditorWindow.GetWindow(pref_win_type, true, "LightingWindow");
-							lightingWindow = (EditorWindow)ScriptableObject.CreateInstance(pref_win_type); 
-							lightingWindow.Show();
-							lightingWindow.position = pos;
-
-							// so_renderSettings.FindProperty(prop_SubtractiveShadowColor).SetSerializedProperty(tempLightingData.realtimeShadowColor);
-							// so_renderSettings.FindProperty(prop_SubtractiveShadowColG).SetSerializedProperty(tempLightingData.realtimeShadowColor.g);
-							// so_renderSettings.FindProperty(prop_SubtractiveShadowColB).SetSerializedProperty(tempLightingData.realtimeShadowColor.b);
-							// so_renderSettings.FindProperty(prop_SubtractiveShadowColA).SetSerializedProperty(tempLightingData.realtimeShadowColor.a);
-							Debug.Log("AFTER subtractiveShadowColor : " + color.r + ", " + color.g + ", " + color.b +  ", " + color.a);
+                            ExportSceneLightingData();
                         }
                     }
                 }
@@ -483,12 +487,22 @@ namespace SceneLightSettings
             EditorGUILayout.Space();
         }
 
+        void Update()
+        {
+            if (EditorApplication.isPlaying == true)
+            {
+                EditorApplication.isPlaying = false;
+            }
+        }
+
         private void ImportLightSettingGroup()
         {
             EditorGUI.BeginChangeCheck();
-            isExpandedImportLightSetting = CustomFoldout(
-                isExpandedImportLightSetting,
-                importTextColorHex + "<b>Import Light Setting</b></color>");
+            {
+                isExpandedImportLightSetting = CustomFoldout(
+                    isExpandedImportLightSetting,
+                    importTextColorHex + "<b>Import Light Setting</b></color>");
+            }
             if (EditorGUI.EndChangeCheck())
             {
                 EditorPrefs.SetBool(prefsKey_isExpandedImportLightSetting, isExpandedImportLightSetting);
@@ -505,17 +519,23 @@ namespace SceneLightSettings
                 using (new EditorGUILayout.VerticalScope())
                 {
                     EditorGUI.BeginChangeCheck();
-                    doImportLightingData     = EditorGUILayout.ToggleLeft(label_LightingData, doImportLightingData);
-                    EditorGUI.indentLevel++;
-                    doImportLightingData_ENV = EditorGUILayout.ToggleLeft(label_ENV, doImportLightingData_ENV);
-                    doImportLightingData_RML = EditorGUILayout.ToggleLeft(label_RML, doImportLightingData_RML);
-                    doImportLightingData_LMS = EditorGUILayout.ToggleLeft(label_LMS, doImportLightingData_LMS);
-                    doImportLightingData_OTS = EditorGUILayout.ToggleLeft(label_OTS, doImportLightingData_OTS);
-                    EditorGUI.indentLevel--;
-                    doImportLights           = EditorGUILayout.ToggleLeft(label_Lights, doImportLights);
-                    doImportLightProbeGroups = EditorGUILayout.ToggleLeft(label_LightProbeGroups, doImportLightProbeGroups);
-                    doImportReflectionProbes = EditorGUILayout.ToggleLeft(label_ReflectionProbes, doImportReflectionProbes);
-                    doDeleteExistingLights   = EditorGUILayout.ToggleLeft(label_ExistingLights, doDeleteExistingLights);
+                    {
+                        doImportLightingData     = EditorGUILayout.ToggleLeft(label_LightingData, doImportLightingData);
+                        EditorGUI.indentLevel++;
+                        EditorGUI.BeginDisabledGroup(!doImportLightingData);
+                        {
+                            doImportLightingData_ENV = EditorGUILayout.ToggleLeft(label_ENV, doImportLightingData_ENV);
+                            doImportLightingData_RML = EditorGUILayout.ToggleLeft(label_RML, doImportLightingData_RML);
+                            doImportLightingData_LMS = EditorGUILayout.ToggleLeft(label_LMS, doImportLightingData_LMS);
+                            doImportLightingData_OTS = EditorGUILayout.ToggleLeft(label_OTS, doImportLightingData_OTS);
+                        }
+                        EditorGUI.EndDisabledGroup();
+                        EditorGUI.indentLevel--;
+                        doImportLights           = EditorGUILayout.ToggleLeft(label_Lights, doImportLights);
+                        doImportLightProbeGroups = EditorGUILayout.ToggleLeft(label_LightProbeGroups, doImportLightProbeGroups);
+                        doImportReflectionProbes = EditorGUILayout.ToggleLeft(label_ReflectionProbes, doImportReflectionProbes);
+                        doDeleteExistingLights   = EditorGUILayout.ToggleLeft(label_ExistingLights, doDeleteExistingLights);
+                    }
                     if (EditorGUI.EndChangeCheck())
                     {
                         EditorPrefs.SetBool(prefsKey_doImportLightingData, doImportLightingData);
@@ -586,6 +606,10 @@ namespace SceneLightSettings
             var sceneName  = (currentSceneName != "") ? currentScene.name : "UntitledScene";
             var fileName   = "SceneLightingData_" + sceneName + ".asset";
             exportDataPath = Path.Combine(exportFolderPath, fileName);
+            if (File.Exists(exportDataPath) == true)
+            {
+                exportDataPath = exportDataPath.Replace(".asset", "_1.asset");
+            }
             exportDataPath = AssetDatabase.GenerateUniqueAssetPath(exportDataPath);
 
             var lightingData = SceneLightSettingExporter.GetSceneLightingData(
@@ -604,11 +628,15 @@ namespace SceneLightSettings
             }
 
             AssetDatabase.CreateAsset(lightingData, exportDataPath);
-            Debug.Log(message_DoneExpoted + "exportDataPath = " + exportDataPath, lightingData);
-            EditorUtility.DisplayDialog(
-                "Scene Light Setting Export / Import",
-                message_DoneExpoted + "\n\nExportDataPath\n>>    " + exportDataPath,
-                "OK");
+            Debug.Log(message_DoneExpoted + "  :  exportDataPath = " + exportDataPath, lightingData);
+
+            var displayResult = message_DoneExpoted + "\n\nExportDataPath\n    " + exportDataPath;
+            if (lightingData.exportWarningMessages.Length > 0)
+            {
+                Debug.LogWarning("Scene Light Setting Export Warnings\n" + lightingData.exportWarningMessages);
+                displayResult += "\n\nExport Warnings\n    " + lightingData.exportWarningMessages;
+            }
+            EditorUtility.DisplayDialog("Scene Light Setting Export / Import", displayResult, "OK");
         }
 
         private static void ImportSceneLightingData()
@@ -626,10 +654,10 @@ namespace SceneLightSettings
             var lightingData = AssetDatabase.LoadAssetAtPath<SceneLightingData>(importDataPath);
             if (lightingData == null)
             {
-                Debug.LogWarning(message_NoLoadLightingData + "importDataPath = " + importDataPath);
+                Debug.LogWarning(message_NoLoadLightingData + "  :  importDataPath = " + importDataPath);
                 EditorUtility.DisplayDialog(
                     "Scene Light Setting Export / Import",
-                    message_NoLoadLightingData + "\n\nImportDataPath\n>>    " + importDataPath,
+                    message_NoLoadLightingData + "\n\nImportDataPath\n    " + importDataPath,
                     "OK");
                 return;
             }
@@ -639,16 +667,6 @@ namespace SceneLightSettings
             if (doDeleteExistingLights == true)
             {
                 SceneLightSettingExporter.DeleteExistingLights(doImportLights, doImportLightProbeGroups, doImportReflectionProbes);
-            }
-
-            if (doImportLightingData == true)
-            {
-                SceneLightSettingExporter.SetSceneLightingData(
-                    lightingData,
-                    doImportLightingData_ENV,
-                    doImportLightingData_RML,
-                    doImportLightingData_LMS,
-                    doImportLightingData_OTS);
             }
 
             if (doImportLights == true)
@@ -666,11 +684,21 @@ namespace SceneLightSettings
                 SceneLightSettingExporter.SetSceneReflectionProbes(lightingData);
             }
 
+            if (doImportLightingData == true)
+            {
+                SceneLightSettingExporter.SetSceneLightingData(
+                    lightingData,
+                    doImportLightingData_ENV,
+                    doImportLightingData_RML,
+                    doImportLightingData_LMS,
+                    doImportLightingData_OTS);
+            }
+
             EditorSceneManager.MarkSceneDirty(currentScene);
-            Debug.Log(message_DoneImpoted + "importDataPath = " + importDataPath, lightingData);
+            Debug.Log(message_DoneImpoted + "  :  importDataPath = " + importDataPath, lightingData);
             EditorUtility.DisplayDialog(
                 "Scene Light Setting Export / Import",
-                message_DoneImpoted + "\n\nImportDataPath\n>>    " + importDataPath,
+                message_DoneImpoted + "\n\nImportDataPath\n    " + importDataPath,
                 "OK");
         }
 

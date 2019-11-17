@@ -1,12 +1,12 @@
 ﻿using System.Reflection;
 using System.Collections.Generic;
+using System.Linq;
 
 using UnityEditor;
 using UnityEngine;
 
 using Object = UnityEngine.Object;
 
-using System.IO;
 namespace SceneLightSettings
 {
     public class SceneLightSettingExporter
@@ -19,11 +19,7 @@ namespace SceneLightSettings
 
 #if !UNITY_2018_1_OR_NEWER
         private static readonly string prop_PVRBounce              = "m_LightmapEditorSettings.m_PVRBounces";
-		private static readonly string prop_LightmapsBakeMode      = "m_LightmapEditorSettings.m_LightmapsBakeMode";
-		private static readonly string prop_SubtractiveShadowColor = "m_SubtractiveShadowColor";
-		// private static readonly string prop_SubtractiveShadowColG  = "m_SubtractiveShadowColor.g";
-		// private static readonly string prop_SubtractiveShadowColB  = "m_SubtractiveShadowColor.b";
-		// private static readonly string prop_SubtractiveShadowColA  = "m_SubtractiveShadowColor.a";
+        private static readonly string prop_LightmapsBakeMode      = "m_LightmapEditorSettings.m_LightmapsBakeMode";
 #endif
 
 #if !UNITY_2018_2_OR_NEWER
@@ -62,14 +58,14 @@ namespace SceneLightSettings
         private static readonly BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Static;
 
 
-        private static SerializedObject GetSerializedLightmapSettingsObject()
+        public static SerializedObject GetSerializedLightmapSettingsObject()
         {
             var getLightmapSettings = typeof(LightmapEditorSettings).GetMethod("GetLightmapSettings", flags);
             var lightmapSettings    = (Object)getLightmapSettings.Invoke(null, null);
             return new SerializedObject(lightmapSettings);
         }
 
-        private static SerializedObject GetSerializedRenderSettingsObject()
+        public static SerializedObject GetSerializedRenderSettingsObject()
         {
             var getRenderSettings = typeof(RenderSettings).GetMethod("GetRenderSettings", flags);
             var renderSettings    = (Object)getRenderSettings.Invoke(null, null);
@@ -87,22 +83,25 @@ namespace SceneLightSettings
             var tempLightingData             = new LightingData();
             var tempLightmappingSettingsData = new LightmappingSettingsData();
             var tempOtherSettingsData        = new OtherSettingsData();
+            var tempExportWarningMessages    = "";
 
             var so_lightmapSettings          = GetSerializedLightmapSettingsObject();
             var so_renderSettings            = GetSerializedRenderSettingsObject();
 
-            var sp_lightmapSettingsTxtPath = Application.dataPath + "/sp_lightmapSettings.txt";
-            var sw_lightmapSettings        = new StreamWriter (sp_lightmapSettingsTxtPath, false, System.Text.Encoding.GetEncoding ("shift_jis"));
-            CheckSerializedProperty.GetSerializedProperties(so_lightmapSettings, ref sw_lightmapSettings);
-            sw_lightmapSettings.Close ();
-            var sp_renderSettingsTxtPath = Application.dataPath + "/sp_renderSettings.txt";
-            var sw_renderSettings        = new StreamWriter (sp_renderSettingsTxtPath, false, System.Text.Encoding.GetEncoding ("shift_jis"));
-            CheckSerializedProperty.GetSerializedProperties(so_renderSettings, ref sw_renderSettings);
-            sw_renderSettings.Close ();
-
             // Environment ========================================================================
             tempEnvironmentData.skyboxMaterial               = RenderSettings.skybox;
-            tempEnvironmentData.sunSource                    = RenderSettings.sun;
+
+            var _sun = RenderSettings.sun;
+            if (DataUtility.ExistsAssetObject(_sun) == true)
+            {
+                tempEnvironmentData.sunSource                = _sun;
+            }
+            else
+            {
+                tempEnvironmentData.sunSourceName            = _sun.name;
+                tempExportWarningMessages                    += DataUtility.GetWarningMessage("Environment - Sun Source");
+            }
+
             tempEnvironmentData.lightingSource               = RenderSettings.ambientMode;
             tempEnvironmentData.lightingIntensityMultiplier  = RenderSettings.ambientIntensity;
             tempEnvironmentData.ambientMode                  = so_lightmapSettings.FindProperty(prop_EnvLightMode).ToNullableInt();
@@ -231,7 +230,7 @@ namespace SceneLightSettings
             tempLightmappingSettingsData.directionalMode             = LightmapEditorSettings.lightmapsMode;
 #else
             // tempLightmappingSettingsData.directionalMode             = LightmapSettings.lightmapsMode; // 2017.4.34で、こっちだときちんと取得できなかった… 
-			tempLightmappingSettingsData.directionalMode             = (LightmapsMode)so_lightmapSettings.FindProperty(prop_LightmapsBakeMode).intValue;
+            tempLightmappingSettingsData.directionalMode             = (LightmapsMode)so_lightmapSettings.FindProperty(prop_LightmapsBakeMode).intValue;
 #endif
             tempLightmappingSettingsData.indirectIntensity           = Lightmapping.indirectOutputScale;
             tempLightmappingSettingsData.albedoBoost                 = Lightmapping.bounceBoost;
@@ -255,6 +254,7 @@ namespace SceneLightSettings
             tempOtherSettingsData.flareFadeSpeed = RenderSettings.flareFadeSpeed;
             tempOtherSettingsData.flareStrength  = RenderSettings.flareStrength;
             tempOtherSettingsData.spotCookie     = (Texture2D)so_renderSettings.FindProperty(prop_SpotCookie).objectReferenceValue;
+            tempOtherSettingsData.gIWorkflowMode = Lightmapping.giWorkflowMode;
 
 
             var exportSLD = ScriptableObject.CreateInstance<SceneLightingData>();
@@ -265,6 +265,7 @@ namespace SceneLightSettings
             exportSLD.sceneLightData           = GetLightDataArray(isExportLights);
             exportSLD.sceneLightProbeData      = GetLightProbeDataArray(isExportLightProbeGroups);
             exportSLD.sceneReflectionProbeData = GetReflectionProbeDataArray(isExportReflectionProbes);
+            exportSLD.exportWarningMessages    = tempExportWarningMessages;
             return exportSLD;
         }
 
@@ -497,7 +498,19 @@ namespace SceneLightSettings
             {
                 // Environment ========================================================================
                 RenderSettings.skybox                                       = tempEnvironmentData.skyboxMaterial;
-                RenderSettings.sun                                          = tempEnvironmentData.sunSource;
+                if (tempEnvironmentData.sunSource != null)
+                {
+                    RenderSettings.sun                                      = tempEnvironmentData.sunSource;
+                }
+                else
+                {
+                    // シーン内に sunSourceName と同じ名前のLightがあるかどうかチェックし、もし存在していたらセットする
+                    var _sunSourceObject = Object.FindObjectsOfType(typeof(Light)).FirstOrDefault(o => o.name == tempEnvironmentData.sunSourceName);
+                    if (_sunSourceObject != null)
+                    {
+                        RenderSettings.sun                                  = (Light)_sunSourceObject;
+                    }
+                }
                 RenderSettings.ambientMode                                  = tempEnvironmentData.lightingSource;
                 RenderSettings.ambientIntensity                             = tempEnvironmentData.lightingIntensityMultiplier;
                 so_lightmapSettings.FindProperty(prop_EnvLightMode).SetSerializedProperty(tempEnvironmentData.ambientMode);
@@ -524,17 +537,12 @@ namespace SceneLightSettings
                 so_lightmapSettings.FindProperty(prop_MixedBakeMode).SetSerializedProperty((int)tempLightingData.lightingMode);
 #endif
 
-#if UNITY_2018_1_OR_NEWER
                 RenderSettings.subtractiveShadowColor                       = tempLightingData.realtimeShadowColor;
-#else
-				Debug.Log("BEFORE prop_SubtractiveShadowColR : " + so_renderSettings.FindProperty(prop_SubtractiveShadowColor).colorValue +
-					" , tempLightingData.realtimeShadowColor = " + tempLightingData.realtimeShadowColor.r);
-				so_renderSettings.FindProperty(prop_SubtractiveShadowColor).SetSerializedProperty(tempLightingData.realtimeShadowColor);
-				// so_renderSettings.FindProperty(prop_SubtractiveShadowColG).SetSerializedProperty(tempLightingData.realtimeShadowColor.g);
-				// so_renderSettings.FindProperty(prop_SubtractiveShadowColB).SetSerializedProperty(tempLightingData.realtimeShadowColor.b);
-				// so_renderSettings.FindProperty(prop_SubtractiveShadowColA).SetSerializedProperty(tempLightingData.realtimeShadowColor.a);
-				Debug.Log("AFTER prop_SubtractiveShadowColR : " + so_renderSettings.FindProperty(prop_SubtractiveShadowColor).colorValue);
-				RenderSettings.subtractiveShadowColor                       = tempLightingData.realtimeShadowColor;
+#if !UNITY_2018_1_OR_NEWER
+                // 2017 ではなぜか
+                Debug.Log("2017 ではなぜか subtractiveShadowColor のEditor上での更新");
+                var scriptPath = AssetDatabase.GetAssetPath( MonoScript.FromScriptableObject(importSLD) );
+                AssetDatabase.ImportAsset(scriptPath);
 #endif
             }
 
@@ -642,7 +650,7 @@ namespace SceneLightSettings
 #if UNITY_2018_1_OR_NEWER
                 LightmapEditorSettings.lightmapsMode                        = tempLightmappingSettingsData.directionalMode;
 #else
-				so_lightmapSettings.FindProperty(prop_LightmapsBakeMode).SetSerializedProperty((int)tempLightmappingSettingsData.directionalMode);
+                so_lightmapSettings.FindProperty(prop_LightmapsBakeMode).SetSerializedProperty((int)tempLightmappingSettingsData.directionalMode);
 #endif
 
                 Lightmapping.indirectOutputScale                            = tempLightmappingSettingsData.indirectIntensity;
@@ -670,14 +678,11 @@ namespace SceneLightSettings
                 RenderSettings.flareFadeSpeed                               = tempOtherSettingsData.flareFadeSpeed;
                 RenderSettings.flareStrength                                = tempOtherSettingsData.flareStrength;
                 so_renderSettings.FindProperty(prop_SpotCookie).SetSerializedProperty(tempOtherSettingsData.spotCookie);
+                Lightmapping.giWorkflowMode                                 = tempOtherSettingsData.gIWorkflowMode;
             }
-			// Debug.Log("AFTER prop_SubtractiveShadowColR 2 : " + so_renderSettings.FindProperty(prop_SubtractiveShadowColR).floatValue);
-			so_lightmapSettings.Update();
+
             so_lightmapSettings.ApplyModifiedProperties();
-			so_renderSettings.Update();
             so_renderSettings.ApplyModifiedProperties();
-			// Debug.Log("AFTER prop_SubtractiveShadowColR 3 : " + so_renderSettings.FindProperty(prop_SubtractiveShadowColR).floatValue);
-			Debug.LogWarning("ImportSceneLightingData 3 ");
         }
 
         public static void SetSceneLights(SceneLightingData importSLD)

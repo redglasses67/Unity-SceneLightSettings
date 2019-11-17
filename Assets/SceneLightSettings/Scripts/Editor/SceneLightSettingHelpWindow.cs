@@ -144,7 +144,7 @@ namespace SceneLightSettings
                 EditorGUILayout.Space();
             }
 
-            scrollPos = EditorGUILayout.BeginScrollView(scrollPos, "Box", GUILayout.Height(240));
+            scrollPos = EditorGUILayout.BeginScrollView(scrollPos, GUI.skin.box, GUILayout.Height(240));
             {
                 EditorGUILayout.LabelField(message_Help, messageStyle);
             }

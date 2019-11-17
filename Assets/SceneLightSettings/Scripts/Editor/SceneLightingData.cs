@@ -9,6 +9,7 @@ namespace SceneLightSettings
     {
         public Material skyboxMaterial;
         public Light sunSource;
+		public string sunSourceName;
 
         public AmbientMode lightingSource;
         public float lightingIntensityMultiplier;
@@ -112,6 +113,8 @@ namespace SceneLightSettings
         public float flareFadeSpeed;
         public float flareStrength;
         public Texture2D spotCookie;
+
+        public Lightmapping.GIWorkflowMode gIWorkflowMode; // Auto Genarate
     }
 
 
@@ -253,6 +256,8 @@ namespace SceneLightSettings
         public LightData[] sceneLightData;
         public LightProbeData[] sceneLightProbeData;
         public ReflectionProbeData[] sceneReflectionProbeData;
+
+        public string exportWarningMessages;
     }
 
     [System.Serializable]

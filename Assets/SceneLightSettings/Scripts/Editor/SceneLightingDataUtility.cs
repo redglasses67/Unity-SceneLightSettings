@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 using UnityEditor;
-
+using System.IO;
 
 namespace SceneLightSettings
 {
@@ -271,6 +271,21 @@ namespace SceneLightSettings
             sp.colorValue = colorValue;
             sp.serializedObject.ApplyModifiedProperties();
         }
-    }
 #endregion
+
+#region etc.
+        public static bool ExistsAssetObject(Object obj)
+        {
+            var path = AssetDatabase.GetAssetPath(obj.GetInstanceID());
+            return File.Exists(path);
+        }
+
+        public static string GetWarningMessage(string warningPath)
+        {
+            return (Application.systemLanguage == SystemLanguage.Japanese) ?
+                warningPath + " : 設定されたオブジェクトは保存されたアセットではありませんでした。\n" :
+                warningPath + " : The set object is not a saved asset.\n";
+        }
+#endregion
+    }
 }
