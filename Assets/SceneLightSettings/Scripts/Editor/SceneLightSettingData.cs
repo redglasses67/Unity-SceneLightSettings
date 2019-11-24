@@ -9,7 +9,7 @@ namespace SceneLightSettings
     {
         public Material skyboxMaterial;
         public Light sunSource;
-		public string sunSourceName;
+        public string sunSourceName;
 
         public AmbientMode lightingSource;
         public float lightingIntensityMultiplier;
@@ -246,7 +246,7 @@ namespace SceneLightSettings
         public Texture bakedTexture;
     }
 
-    public class SceneLightingData : ScriptableObject
+    public class SceneLightSettingData : ScriptableObject
     {
         public EnvironmentData environmentData;
         public LightingData lightingData;

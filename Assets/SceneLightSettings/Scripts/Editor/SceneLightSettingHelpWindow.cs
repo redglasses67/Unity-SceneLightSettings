@@ -39,8 +39,8 @@ namespace SceneLightSettings
                                     "\n" +
                                     "<size=12><b>Export</b></size>\n" +
                                     "    現在開いているシーンの保存先のパスに\n" +
-                                    "    SceneLightingData フォルダを作成し、\n" +
-                                    "    そこに </color><color=red>SceneLightingData + シーン名</color>" + textBaseColorHex + " の\n" +
+                                    "    SceneLightSettingData フォルダを作成し、\n" +
+                                    "    そこに </color><color=red>SceneLightSettingData + シーン名</color>" + textBaseColorHex + " の\n" +
                                     "    ファイル名で出力されます。\n" +
                                     "\n" +
                                     "<size=12><b>Import</b></size>\n" +
@@ -71,8 +71,8 @@ namespace SceneLightSettings
                                     "         existing light objects in the current scene\n" +
                                     "\n" +
                                     "<size=12><b>Export</b></size>\n" +
-                                    "    The data name is </color><color=red>'SceneLightingData' + </color>\n" +
-                                    "    <color=red>'scene name'</color>" + textBaseColorHex + ", and a SceneLightingData folder\n" +
+                                    "    The data name is </color><color=red>'SceneLightSettingData' + </color>\n" +
+                                    "    <color=red>'scene name'</color>" + textBaseColorHex + ", and a SceneLightSettingData folder\n" +
                                     "    is created in saving path in the current scene.\n" +
                                     "    Then it exports to that location.\n" +
                                     "\n" +

@@ -291,22 +291,22 @@ namespace SceneLightSettings
 
 
             message_CreateDir = (Application.systemLanguage == SystemLanguage.Japanese) ?
-                "SceneLightingData フォルダを作成しました." : "Created SceneLightingData Folder.";
+                "SceneLightSettingData フォルダを作成しました." : "Created SceneLightSettingData Folder.";
 
             message_NoLightingData = (Application.systemLanguage == SystemLanguage.Japanese) ?
-                "SceneLightingData が取得できませんでした..." : "Did not get SceneLightingData ...";
+                "SceneLightSettingData が取得できませんでした..." : "Did not get SceneLightSettingData ...";
 
             message_DoneExpoted = (Application.systemLanguage == SystemLanguage.Japanese) ?
-                "SceneLightingData を書き出しました!" : "Created SceneLightingData";
+                "SceneLightSettingData を書き出しました!" : "Created SceneLightSettingData";
 
             message_EmptyImportPath = (Application.systemLanguage == SystemLanguage.Japanese) ?
                 "Import File Path が空です..." : "Import File Path is empty ...";
 
             message_NoLoadLightingData = (Application.systemLanguage == SystemLanguage.Japanese) ?
-                "SceneLightingData が読み込めませんでした..." : "Did not load SceneLightingData ...";
+                "SceneLightSettingData が読み込めませんでした..." : "Did not load SceneLightSettingData ...";
 
             message_DoneImpoted = (Application.systemLanguage == SystemLanguage.Japanese) ?
-                "SceneLightingData を読み込みました!" : "Created SceneLightingData.";
+                "SceneLightSettingData を読み込みました!" : "Created SceneLightSettingData.";
         }
 
         private void SetTextColors()
@@ -477,7 +477,7 @@ namespace SceneLightSettings
                             GUILayout.Height(70),
                             GUILayout.Width(100)))
                         {
-                            ExportSceneLightingData();
+                            ExportSceneLightSettingData();
                         }
                     }
                 }
@@ -556,7 +556,7 @@ namespace SceneLightSettings
                             GUILayout.Height(150),
                             GUILayout.Width(100)))
                         {
-                            ImportSceneLightingData();
+                            ImportSceneLightSettingData();
                         }
                         EditorGUILayout.Space();
                     }
@@ -581,7 +581,7 @@ namespace SceneLightSettings
                         var selectedImportDataPath = EditorUtility.OpenFilePanelWithFilters(
                                                         "Select Scene Light Setting Data to Import",
                                                         openFolderPath,
-                                                        new string[]{"SceneLightingData", "asset"});
+                                                        new string[]{"SceneLightSettingData", "asset"});
                         // 相対パスに変換
                         importDataPath = selectedImportDataPath.Replace(Application.dataPath, "Assets");
                     }
@@ -593,10 +593,10 @@ namespace SceneLightSettings
         }
 
 
-        private static void ExportSceneLightingData()
+        private static void ExportSceneLightSettingData()
         {
             var exportFolderParentPath = (currentSceneFolderPath != "") ? currentSceneFolderPath : "Assets";
-            var exportFolderPath = Path.Combine(exportFolderParentPath, "SceneLightingData");
+            var exportFolderPath = Path.Combine(exportFolderParentPath, "SceneLightSettingData");
             if (Directory.Exists(exportFolderPath) == false)
             {
                 Directory.CreateDirectory(exportFolderPath);
@@ -604,7 +604,7 @@ namespace SceneLightSettings
             }
 
             var sceneName  = (currentSceneName != "") ? currentScene.name : "UntitledScene";
-            var fileName   = "SceneLightingData_" + sceneName + ".asset";
+            var fileName   = "SceneLightSettingData_" + sceneName + ".asset";
             exportDataPath = Path.Combine(exportFolderPath, fileName);
             if (File.Exists(exportDataPath) == true)
             {
@@ -612,7 +612,7 @@ namespace SceneLightSettings
             }
             exportDataPath = AssetDatabase.GenerateUniqueAssetPath(exportDataPath);
 
-            var lightingData = SceneLightSettingExporter.GetSceneLightingData(
+            var lightingData = SceneLightSettingExporter.GetSceneLightSettingData(
                                 doExportLightingData,
                                 doExportLights,
                                 doExportLightProbeGroups,
@@ -639,7 +639,7 @@ namespace SceneLightSettings
             EditorUtility.DisplayDialog("Scene Light Setting Export / Import", displayResult, "OK");
         }
 
-        private static void ImportSceneLightingData()
+        private static void ImportSceneLightSettingData()
         {
             if (importDataPath == "")
             {
@@ -651,7 +651,7 @@ namespace SceneLightSettings
                 return;
             }
 
-            var lightingData = AssetDatabase.LoadAssetAtPath<SceneLightingData>(importDataPath);
+            var lightingData = AssetDatabase.LoadAssetAtPath<SceneLightSettingData>(importDataPath);
             if (lightingData == null)
             {
                 Debug.LogWarning(message_NoLoadLightingData + "  :  importDataPath = " + importDataPath);
@@ -686,7 +686,7 @@ namespace SceneLightSettings
 
             if (doImportLightingData == true)
             {
-                SceneLightSettingExporter.SetSceneLightingData(
+                SceneLightSettingExporter.SetSceneLightSettingData(
                     lightingData,
                     doImportLightingData_ENV,
                     doImportLightingData_RML,

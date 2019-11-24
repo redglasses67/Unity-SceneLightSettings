@@ -73,7 +73,7 @@ namespace SceneLightSettings
         }
 
 
-        public static SceneLightingData GetSceneLightingData(
+        public static SceneLightSettingData GetSceneLightSettingData(
             bool isExportLightingData,
             bool isExportLights,
             bool isExportLightProbeGroups,
@@ -257,7 +257,7 @@ namespace SceneLightSettings
             tempOtherSettingsData.gIWorkflowMode = Lightmapping.giWorkflowMode;
 
 
-            var exportSLD = ScriptableObject.CreateInstance<SceneLightingData>();
+            var exportSLD = ScriptableObject.CreateInstance<SceneLightSettingData>();
             exportSLD.environmentData          = (isExportLightingData == true) ? tempEnvironmentData : null;
             exportSLD.lightingData             = (isExportLightingData == true) ? tempLightingData : null;
             exportSLD.lightmappingSettingsData = (isExportLightingData == true) ? tempLightmappingSettingsData : null;
@@ -266,6 +266,10 @@ namespace SceneLightSettings
             exportSLD.sceneLightProbeData      = GetLightProbeDataArray(isExportLightProbeGroups);
             exportSLD.sceneReflectionProbeData = GetReflectionProbeDataArray(isExportReflectionProbes);
             exportSLD.exportWarningMessages    = tempExportWarningMessages;
+
+            so_lightmapSettings.Dispose();
+            so_renderSettings.Dispose();
+
             return exportSLD;
         }
 
@@ -357,6 +361,8 @@ namespace SceneLightSettings
 #endif
 
                 tempSceneLightDataList.Add(tempSceneLightData);
+
+                so_light.Dispose();
             }
             return tempSceneLightDataList.ToArray();
         }
@@ -463,13 +469,14 @@ namespace SceneLightSettings
                 tempSceneReflectionProbe.bakedTexture         = sceneReflectionProbe.bakedTexture;
 
                 tempSceneReflectionProbeDataList.Add(tempSceneReflectionProbe);
+                so_reflectionProbe.Dispose();
             }
             return tempSceneReflectionProbeDataList.ToArray();
         }
 
 
-        public static void SetSceneLightingData(
-            SceneLightingData importSLD,
+        public static void SetSceneLightSettingData(
+            SceneLightSettingData importSLD,
             bool doImportEnviromentData,
             bool doImportRealtimeAndMixedLightingData,
             bool doImportLightmappingSettingsData,
@@ -539,8 +546,8 @@ namespace SceneLightSettings
 
                 RenderSettings.subtractiveShadowColor                       = tempLightingData.realtimeShadowColor;
 #if !UNITY_2018_1_OR_NEWER
-                // 2017 ではなぜか
-                Debug.Log("2017 ではなぜか subtractiveShadowColor のEditor上での更新");
+                // 2017 ではなぜかEditor上での subtractiveShadowColor の描画の更新がされないのでImportAssetを行う
+                Debug.Log("2017 ではなぜかEditor上での subtractiveShadowColor の描画の更新がされないのでImportAssetを行う");
                 var scriptPath = AssetDatabase.GetAssetPath( MonoScript.FromScriptableObject(importSLD) );
                 AssetDatabase.ImportAsset(scriptPath);
 #endif
@@ -683,9 +690,12 @@ namespace SceneLightSettings
 
             so_lightmapSettings.ApplyModifiedProperties();
             so_renderSettings.ApplyModifiedProperties();
+
+            so_lightmapSettings.Dispose();
+            so_renderSettings.Dispose();
         }
 
-        public static void SetSceneLights(SceneLightingData importSLD)
+        public static void SetSceneLights(SceneLightSettingData importSLD)
         {
             var sceneLightDataArray = importSLD.sceneLightData;
             foreach (var sceneLightData in sceneLightDataArray)
@@ -761,12 +771,12 @@ namespace SceneLightSettings
                 lightComponent.shadowRadius              = sceneLightData.shadowRadius;
                 lightComponent.shadowAngle               = sceneLightData.shadowAngle;
 #endif
-
                 Undo.RegisterCreatedObjectUndo(lightGameObject, "ImportSceneLightSetting");
+                so_light.Dispose();
             }
         }
 
-        public static void SetSceneLightProbeGroups(SceneLightingData importSLD)
+        public static void SetSceneLightProbeGroups(SceneLightSettingData importSLD)
         {
             var sceneLightProbeDataArray = importSLD.sceneLightProbeData;
             foreach (var sceneLightProbeData in sceneLightProbeDataArray)
@@ -793,7 +803,7 @@ namespace SceneLightSettings
             }
         }
 
-        public static void SetSceneReflectionProbes(SceneLightingData importSLD)
+        public static void SetSceneReflectionProbes(SceneLightSettingData importSLD)
         {
             var sceneReflectionProbeDataArray = importSLD.sceneReflectionProbeData;
             foreach (var sceneReflectionProbeData in sceneReflectionProbeDataArray)
@@ -843,6 +853,7 @@ namespace SceneLightSettings
                 reflectionProbeComponent.bakedTexture       = sceneReflectionProbeData.bakedTexture;
 
                 Undo.RegisterCreatedObjectUndo(reflectionProbeGameObject, "ImportSceneLightSetting");
+                so_reflectionProbe.Dispose();
             }
         }
 
