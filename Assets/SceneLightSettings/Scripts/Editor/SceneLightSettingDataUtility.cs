@@ -286,6 +286,72 @@ namespace SceneLightSettings
                 warningPath + " : 設定されたオブジェクトは保存されたアセットではありませんでした。\n" :
                 warningPath + " : The set object is not a saved asset.\n";
         }
+
+        public static void GetSerializedProperties(SerializedObject so, ref StreamWriter sw)
+        {
+            var sp = so.GetIterator();
+
+            while (sp.Next(true))
+            {
+                switch (sp.propertyType)
+                {
+                    case SerializedPropertyType.Integer:
+                        sw.WriteLine ("Integer        : " + sp.propertyPath + " ( " + sp.displayName + " ) ----- " + sp.intValue);
+                        break;
+                    case SerializedPropertyType.Float:
+                        sw.WriteLine ("Float          : " + sp.propertyPath + " ( " + sp.displayName + " ) ----- " + sp.floatValue);
+                        break;
+                    case SerializedPropertyType.Boolean:
+                        sw.WriteLine ("Boolean        : " + sp.propertyPath + " ( " + sp.displayName + " ) ----- " + sp.boolValue);
+                        break;
+                    case SerializedPropertyType.String:
+                        sw.WriteLine ("String         : " + sp.propertyPath + " ( " + sp.displayName + " ) ----- " + sp.stringValue);
+                        break;
+                    case SerializedPropertyType.Enum:
+                        sw.WriteLine ("Enum           : " + sp.propertyPath + " ( " + sp.displayName + " ) ----- " + sp.enumValueIndex);
+                        break;
+                    case SerializedPropertyType.ArraySize:
+                        sw.WriteLine ("ArraySize      : " + sp.propertyPath + " ( " + sp.displayName + " ) ----- " + sp.intValue);
+                        break;
+                    case SerializedPropertyType.AnimationCurve:
+                        sw.WriteLine ("AnimationCurve : " + sp.propertyPath + " ( " + sp.displayName + " ) ----- " + sp.propertyType);
+                        break;
+                    case SerializedPropertyType.Quaternion:
+                        sw.WriteLine ("Quaternion     : " + sp.propertyPath + " ( " + sp.displayName + " ) ----- " + sp.quaternionValue);
+                        break;
+                    case SerializedPropertyType.Generic:
+                        sw.WriteLine ("Generic        : " + sp.propertyPath + " ( " + sp.displayName + " ) ----- " + sp.propertyType);
+                        break;
+                    case SerializedPropertyType.ObjectReference:
+                        sw.WriteLine ("ObjectReference: " + sp.propertyPath + " ( " + sp.displayName + " ) ----- " + sp.objectReferenceValue);
+                        break;
+                    case SerializedPropertyType.LayerMask:
+                        sw.WriteLine ("LayerMask      : " + sp.propertyPath + " ( " + sp.displayName + " ) ----- " + sp.propertyType);
+                        break;
+                    case SerializedPropertyType.Character:
+                        sw.WriteLine ("Character      : " + sp.propertyPath + " ( " + sp.displayName + " ) ----- " + sp.propertyType);
+                        break;
+                    case SerializedPropertyType.Bounds:
+                        sw.WriteLine ("Bounds         : " + sp.propertyPath + " ( " + sp.displayName + " ) ----- " + sp.boundsValue);
+                        break;
+                    case SerializedPropertyType.Vector2:
+                        sw.WriteLine ("Vector2        : " + sp.propertyPath + " ( " + sp.displayName + " ) ----- " + sp.vector2Value);
+                        break;
+                    case SerializedPropertyType.Vector3:
+                        sw.WriteLine ("Vector3        : " + sp.propertyPath + " ( " + sp.displayName + " ) ----- " + sp.vector3Value);
+                        break;
+                    case SerializedPropertyType.Vector4:
+                        sw.WriteLine ("Vector4        : " + sp.propertyPath + " ( " + sp.displayName + " ) ----- " + sp.vector4Value);
+                        break;
+                    case SerializedPropertyType.Gradient:
+                        sw.WriteLine ("Gradient       : " + sp.propertyPath + " ( " + sp.displayName + " ) ----- " + sp.propertyType);
+                        break;
+                    default:
+                        sw.WriteLine ("????       : " + sp.propertyPath + " ( " + sp.displayName + " ) ----- " + sp.propertyType);
+                        break;
+                }
+            }
+        }
 #endregion
     }
 }

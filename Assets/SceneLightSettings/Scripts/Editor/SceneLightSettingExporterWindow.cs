@@ -130,13 +130,13 @@ namespace SceneLightSettings
             var so_lightmapSettings        = SceneLightSettingExporter.GetSerializedLightmapSettingsObject();
             var sp_lightmapSettingsTxtPath = Application.dataPath + "/sp_lightmapSettings.txt";
             var sw_lightmapSettings        = new StreamWriter(sp_lightmapSettingsTxtPath, false, System.Text.Encoding.GetEncoding("shift_jis"));
-            CheckSerializedProperty.GetSerializedProperties(so_lightmapSettings, ref sw_lightmapSettings);
+            DataUtility.GetSerializedProperties(so_lightmapSettings, ref sw_lightmapSettings);
             sw_lightmapSettings.Close();
 
             var so_renderSettings        = SceneLightSettingExporter.GetSerializedRenderSettingsObject();
             var sp_renderSettingsTxtPath = Application.dataPath + "/sp_renderSettings.txt";
             var sw_renderSettings        = new StreamWriter(sp_renderSettingsTxtPath, false, System.Text.Encoding.GetEncoding("shift_jis"));
-            CheckSerializedProperty.GetSerializedProperties(so_renderSettings, ref sw_renderSettings);
+            DataUtility.GetSerializedProperties(so_renderSettings, ref sw_renderSettings);
             sw_renderSettings.Close();
 
             Debug.Log("lightmapSettings と renderSettings の SerializedProperty のリストをテキストとして Assets フォルダに保存しました。");
