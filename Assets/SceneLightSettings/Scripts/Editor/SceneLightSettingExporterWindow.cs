@@ -14,9 +14,9 @@ namespace SceneLightSettings
         private static SceneLightSettingExporterWindow window;
         private static SceneLightSettingHelpWindow helpWindow;
         private static readonly Vector2 windowMinSize        = new Vector2(340, 125);
-        private static readonly Vector2 windowSizeFull       = new Vector2(340, 485);
-        private static readonly Vector2 windowSizeExportOnly = new Vector2(340, 270);
-        private static readonly Vector2 windowSizeImportOnly = new Vector2(340, 405);
+        private static readonly Vector2 windowSizeFull       = new Vector2(340, 620);
+        private static readonly Vector2 windowSizeExportOnly = new Vector2(340, 380);
+        private static readonly Vector2 windowSizeImportOnly = new Vector2(340, 420);
         private static readonly Vector2 windowSizeEmpty      = new Vector2(340, 190);
         private static Vector2 scrollPos;
 
@@ -40,7 +40,8 @@ namespace SceneLightSettings
         private static string currentSceneFolderPath;
 
         private static bool isExpandedExportLightSetting;
-        private static string exportDataPath;
+        private static string exportDataFolderPath;
+        private static string exportDataFileName;
         private static bool doExportLightingData;
         private static bool doExportLights;
         private static bool doExportLightProbeGroups;
@@ -57,6 +58,8 @@ namespace SceneLightSettings
         private static bool doImportLightProbeGroups;
         private static bool doImportReflectionProbes;
         private static bool doDeleteExistingLights;
+
+        private Rect tempLastRect;
 #endregion
 
 #region Window & Console Log の表示メッセージ関連
@@ -73,15 +76,19 @@ namespace SceneLightSettings
         private static GUIContent label_LightProbeGroups = new GUIContent();
         private static GUIContent label_ReflectionProbes = new GUIContent();
         private static GUIContent label_ExistingLights   = new GUIContent();
+        private static GUIContent label_ExportFolderPath = new GUIContent();
+        private static GUIContent label_ExportFileName   = new GUIContent();
         private static GUIContent label_ImportFilePath   = new GUIContent();
 
 
+        private static string message_Playing;
         private static string message_CreateDir;
         private static string message_NoLightingData;
         private static string message_DoneExpoted;
         private static string message_EmptyImportPath;
         private static string message_NoLoadLightingData;
         private static string message_DoneImpoted;
+        private static string message_ExportSerializedPropText;
 #endregion
 
 #region Window の設定関連
@@ -105,7 +112,7 @@ namespace SceneLightSettings
 #endregion
 
 
-        [MenuItem("Tools/Scene Light Setting")]
+        [MenuItem("Tools/Scene Light Settings")]
         private static void ShowWindow()
         {
             GetSceneInfo(SceneManager.GetActiveScene());
@@ -139,7 +146,11 @@ namespace SceneLightSettings
             DataUtility.GetSerializedProperties(so_renderSettings, ref sw_renderSettings);
             sw_renderSettings.Close();
 
-            Debug.Log("lightmapSettings と renderSettings の SerializedProperty のリストをテキストとして Assets フォルダに保存しました。");
+            Debug.Log(message_ExportSerializedPropText);
+            EditorUtility.DisplayDialog(
+                    "Scene Light Setting Export / Import",
+                    message_ExportSerializedPropText,
+                    "OK");
         }
 
         private static void ChangeWindowMaxSize()
@@ -162,11 +173,15 @@ namespace SceneLightSettings
             }
         }
 
+        private static void GetSceneInfo()
+        {
+            GetSceneInfo(EditorSceneManager.GetActiveScene());
+        }
         private static void GetSceneInfo(Scene scene)
         {
             currentScene           = scene;
-            currentSceneName       = (scene.name != "") ? scene.name : " < Untitled > ";
-            currentSceneFolderPath = (scene.path != "") ? Path.GetDirectoryName(scene.path) : "";
+            currentSceneName       = (currentScene.name != "") ? currentScene.name : " < Untitled > ";
+            currentSceneFolderPath = (currentScene.path != "") ? Path.GetDirectoryName(currentScene.path) : "";
         }
 
         private static void ResetSceneInfo(Scene scene, NewSceneSetup setup, NewSceneMode mode)
@@ -174,11 +189,21 @@ namespace SceneLightSettings
             currentScene           = scene;
             currentSceneName       = " < Untitled > ";
             currentSceneFolderPath = "";
+            SetDefaultExportPath();
         }
 
         private static void SceneOpend(Scene openedScene, OpenSceneMode mode)
         {
             GetSceneInfo(openedScene);
+            SetDefaultExportPath();
+        }
+
+        private static void SetDefaultExportPath()
+        {
+            exportDataFolderPath = (currentSceneFolderPath != "") ? currentSceneFolderPath : "Assets";
+            exportDataFolderPath = Path.Combine(exportDataFolderPath, "SceneLightSettingData");
+
+            exportDataFileName   = "SceneLightSettingData_" + ((currentSceneName != " < Untitled > ") ? currentSceneName : "UntitledScene");
         }
 
         private void OnEnable()
@@ -191,12 +216,14 @@ namespace SceneLightSettings
             GetEditorPrefs();
             SetMessages();
             SetTextColors();
+
+            GetSceneInfo();
+            SetDefaultExportPath();
         }
 
         private void OnFocus()
         {
-            var activeScene = EditorSceneManager.GetActiveScene();
-            GetSceneInfo(activeScene);
+            GetSceneInfo();
         }
 
         private void OnDisable()
@@ -223,8 +250,15 @@ namespace SceneLightSettings
             var folderIcon = EditorGUIUtility.IconContent("Folder Icon");
             if (folderIcon != null)
             {
-                label_ScenePath.image      = folderIcon.image;
-                label_ImportFilePath.image = folderIcon.image;
+                label_ScenePath.image        = folderIcon.image;
+                label_ExportFolderPath.image = folderIcon.image;
+                label_ImportFilePath.image   = folderIcon.image;
+            }
+
+            var scriptableIcon = EditorGUIUtility.IconContent("ScriptableObject Icon");
+            if (scriptableIcon != null)
+            {
+                label_ExportFileName.image = scriptableIcon.image;
             }
 
             var lightingDataIcon = EditorGUIUtility.IconContent("LightmapParameters Icon");
@@ -287,8 +321,12 @@ namespace SceneLightSettings
             label_LightProbeGroups.text = "LightProbeGroups";
             label_ReflectionProbes.text = "ReflectionProbes";
             label_ExistingLights.text   = "Delete Existing Lights";
-            label_ImportFilePath.text   = "Import File Path";
+            label_ExportFolderPath.text = "Export Folder Path";
+            label_ExportFileName.text   = "Export File Name";
+            label_ImportFilePath.text   = "Import File Full Path";
 
+            message_Playing = (Application.systemLanguage == SystemLanguage.Japanese) ?
+                "再生中は処理を実行できません." : "It cannot be processed while the scene is playing.";
 
             message_CreateDir = (Application.systemLanguage == SystemLanguage.Japanese) ?
                 "SceneLightSettingData フォルダを作成しました." : "Created SceneLightSettingData Folder.";
@@ -307,6 +345,10 @@ namespace SceneLightSettings
 
             message_DoneImpoted = (Application.systemLanguage == SystemLanguage.Japanese) ?
                 "SceneLightSettingData を読み込みました!" : "Created SceneLightSettingData.";
+
+            message_ExportSerializedPropText = (Application.systemLanguage == SystemLanguage.Japanese) ?
+                "lightmapSettings と renderSettings の SerializedProperty のリストをテキストとして Assets フォルダ直下に保存しました。" :
+                "Saved 2 serializedProperty list about lightmapSettings and renderSettings as text to Assets folder.";
         }
 
         private void SetTextColors()
@@ -362,8 +404,8 @@ namespace SceneLightSettings
                     EditorGUI.LabelField(new Rect(10, 4, 300, 20), "<size=13><b><color=#ffd700>" + label_title + "</color></b></size>", labelStyle);
                 }
 
-                var lastRect = GUILayoutUtility.GetLastRect();
-                if (GUI.Button(new Rect(lastRect.width - 28, lastRect.y + 10, 20, 20), EditorGUIUtility.IconContent("_Help"), titleStyle))
+                tempLastRect = GUILayoutUtility.GetLastRect();
+                if (GUI.Button(new Rect(tempLastRect.width - 28, tempLastRect.y + 10, 20, 20), EditorGUIUtility.IconContent("_Help"), titleStyle))
                 {
                     var helpWindowSize = SceneLightSettingHelpWindow.windowSize;
                     var helpWindowPosX = (Screen.currentResolution.width - helpWindowSize.x) / 2;
@@ -383,7 +425,7 @@ namespace SceneLightSettings
 
             GUILayout.Space(30);
 
-            scrollPos = EditorGUILayout.BeginScrollView(scrollPos, GUILayout.MaxHeight(520));
+            scrollPos = EditorGUILayout.BeginScrollView(scrollPos, GUILayout.ExpandHeight(true));
 
             EditorGUILayout.LabelField(label_SceneName);
             using (new EditorGUILayout.HorizontalScope())
@@ -472,28 +514,57 @@ namespace SceneLightSettings
                 {
                     using (new EditorGUILayout.VerticalScope())
                     {
+                        EditorGUILayout.Space();
                         if (GUILayout.Button(exportTextColorHex + "<size=15><b>Export</b></size></color>",
                             buttonStyle,
-                            GUILayout.Height(70),
-                            GUILayout.Width(100)))
+                            GUILayout.Height(60),
+                            GUILayout.Width(90)))
                         {
                             ExportSceneLightSettingData();
                         }
+                        EditorGUILayout.Space();
                     }
                 }
                 EditorGUILayout.Space();
             }
-            EditorGUI.indentLevel--;
+
+            EditorGUILayout.LabelField(label_ExportFolderPath);
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                GUILayout.Space(15);
+
+                EditorGUILayout.TextField(exportDataFolderPath, textStyle, GUILayout.Width(260), GUILayout.ExpandHeight(true));
+
+                using (new BackgroundColorScope(exportButtonColor))
+                {
+                    if (GUILayout.Button(exportTextColorHex + "<b>...</b></color>", buttonStyle, GUILayout.Width(30)))
+                    {
+                        var selectedExportDataPath = EditorUtility.SaveFolderPanel(
+                                                        "Select Scene Light Setting Data for Export",
+                                                        "",
+                                                        "SceneLightSettingData");
+                        // 相対パスに変換
+                        exportDataFolderPath = selectedExportDataPath.Replace(Application.dataPath, "Assets");
+                        Debug.Log("exportDataFolderPath = " + exportDataFolderPath);
+                    }
+                }
+                EditorGUILayout.Space();
+            }
+
+            EditorGUILayout.LabelField(label_ExportFileName);
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                GUILayout.Space(15);
+                exportDataFileName = EditorGUILayout.TextField(exportDataFileName, textStyle, GUILayout.Width(260), GUILayout.ExpandHeight(true));
+                GUILayout.Label("<color=grey><size=9>.asset</size></color>", labelStyle, GUILayout.Width(35));
+
+                EditorGUILayout.Space();
+            }
             EditorGUILayout.Space();
+
+            EditorGUI.indentLevel--;
         }
 
-        void Update()
-        {
-            if (EditorApplication.isPlaying == true)
-            {
-                EditorApplication.isPlaying = false;
-            }
-        }
 
         private void ImportLightSettingGroup()
         {
@@ -554,13 +625,14 @@ namespace SceneLightSettings
                         if (GUILayout.Button(importTextColorHex + "<size=15><b>Import</b></size></color>",
                             buttonStyle,
                             GUILayout.Height(150),
-                            GUILayout.Width(100)))
+                            GUILayout.Width(90)))
                         {
                             ImportSceneLightSettingData();
                         }
                         EditorGUILayout.Space();
                     }
                 }
+
                 EditorGUILayout.Space();
             }
 
@@ -570,7 +642,7 @@ namespace SceneLightSettings
                 GUILayout.Space(15);
 
                 EditorGUI.BeginDisabledGroup(true);
-                EditorGUILayout.TextField("", importDataPath);
+                EditorGUILayout.TextField(importDataPath, textStyle, GUILayout.Width(260), GUILayout.ExpandHeight(true));
                 EditorGUI.EndDisabledGroup();
 
                 using (new BackgroundColorScope(importButtonColor))
@@ -586,7 +658,8 @@ namespace SceneLightSettings
                         importDataPath = selectedImportDataPath.Replace(Application.dataPath, "Assets");
                     }
                 }
-                GUILayout.Space(10);
+
+                EditorGUILayout.Space();
             }
             EditorGUI.indentLevel--;
             EditorGUILayout.Space();
@@ -595,17 +668,23 @@ namespace SceneLightSettings
 
         private static void ExportSceneLightSettingData()
         {
-            var exportFolderParentPath = (currentSceneFolderPath != "") ? currentSceneFolderPath : "Assets";
-            var exportFolderPath = Path.Combine(exportFolderParentPath, "SceneLightSettingData");
-            if (Directory.Exists(exportFolderPath) == false)
+            if (EditorApplication.isPlaying == true)
             {
-                Directory.CreateDirectory(exportFolderPath);
+                Debug.LogWarning(message_Playing);
+                EditorUtility.DisplayDialog(
+                    "Scene Light Setting Export / Import",
+                    message_Playing,
+                    "OK");
+                return;
+            }
+
+            if (Directory.Exists(exportDataFolderPath) == false)
+            {
+                Directory.CreateDirectory(exportDataFolderPath);
                 Debug.Log(message_CreateDir);
             }
 
-            var sceneName  = (currentSceneName != "") ? currentScene.name : "UntitledScene";
-            var fileName   = "SceneLightSettingData_" + sceneName + ".asset";
-            exportDataPath = Path.Combine(exportFolderPath, fileName);
+            var exportDataPath = Path.Combine(exportDataFolderPath, exportDataFileName) + ".asset";
             if (File.Exists(exportDataPath) == true)
             {
                 exportDataPath = exportDataPath.Replace(".asset", "_1.asset");
@@ -641,6 +720,16 @@ namespace SceneLightSettings
 
         private static void ImportSceneLightSettingData()
         {
+            if (EditorApplication.isPlaying == true)
+            {
+                Debug.LogWarning(message_Playing);
+                EditorUtility.DisplayDialog(
+                    "Scene Light Setting Export / Import",
+                    message_Playing,
+                    "OK");
+                return;
+            }
+
             if (importDataPath == "")
             {
                 Debug.LogWarning(message_EmptyImportPath);

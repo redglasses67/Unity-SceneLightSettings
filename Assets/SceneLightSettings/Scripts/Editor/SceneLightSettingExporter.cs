@@ -11,6 +11,7 @@ namespace SceneLightSettings
 {
     public class SceneLightSettingExporter
     {
+        private static readonly string prop_SunSource              = "m_Sun";
         private static readonly string prop_EnvLightMode           = "m_GISettings.m_EnvironmentLightingMode";
         private static readonly string prop_FG                     = "m_LightmapEditorSettings.m_FinalGather";
         private static readonly string prop_FGRayCount             = "m_LightmapEditorSettings.m_FinalGatherRayCount";
@@ -72,7 +73,6 @@ namespace SceneLightSettings
             return new SerializedObject(renderSettings);
         }
 
-
         public static SceneLightSettingData GetSceneLightSettingData(
             bool isExportLightingData,
             bool isExportLights,
@@ -91,8 +91,10 @@ namespace SceneLightSettings
             // Environment ========================================================================
             tempEnvironmentData.skyboxMaterial               = RenderSettings.skybox;
 
-            var _sun = RenderSettings.sun;
-            if (DataUtility.ExistsAssetObject(_sun) == true)
+            var _sun = (Light)so_renderSettings.FindProperty(prop_SunSource).objectReferenceValue;
+            // RenderSettings.sun でも取得できるが、LightingWindowに設定されてなかった場合に、
+            // シーン内で一番重要(強い)Lightを返してくるので注意が必要
+            if (_sun == null || DataUtility.ExistsAssetObject(_sun) == true)
             {
                 tempEnvironmentData.sunSource                = _sun;
             }
@@ -140,7 +142,7 @@ namespace SceneLightSettings
 #endif
 
 #if UNITY_2019_1_OR_NEWER
-            tempLightmappingSettingsData.multipleImportanceSampling  = so_lightmapSettings.FindProperty(prop_PVREnvMIS).ToNullableBool();
+            tempLightmappingSettingsData.multipleImportanceSampling  = so_lightmapSettings.FindProperty(prop_PVREnvMIS).ToNullableInt();
 #endif
 
 #if UNITY_2018_2_OR_NEWER
@@ -507,7 +509,7 @@ namespace SceneLightSettings
                 RenderSettings.skybox                                       = tempEnvironmentData.skyboxMaterial;
                 if (tempEnvironmentData.sunSource != null)
                 {
-                    RenderSettings.sun                                      = tempEnvironmentData.sunSource;
+                    so_renderSettings.FindProperty(prop_SunSource).objectReferenceValue = tempEnvironmentData.sunSource;
                 }
                 else
                 {
@@ -515,7 +517,7 @@ namespace SceneLightSettings
                     var _sunSourceObject = Object.FindObjectsOfType(typeof(Light)).FirstOrDefault(o => o.name == tempEnvironmentData.sunSourceName);
                     if (_sunSourceObject != null)
                     {
-                        RenderSettings.sun                                  = (Light)_sunSourceObject;
+                        so_renderSettings.FindProperty(prop_SunSource).objectReferenceValue = _sunSourceObject;
                     }
                 }
                 RenderSettings.ambientMode                                  = tempEnvironmentData.lightingSource;

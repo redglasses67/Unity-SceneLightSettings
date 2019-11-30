@@ -48,7 +48,7 @@ namespace SceneLightSettings
 
         public bool prioritizeView;
 #if UNITY_2019_1_OR_NEWER
-        public NullableBool multipleImportanceSampling;
+        public NullableInt multipleImportanceSampling;
 #endif
         public int directSamples;
         public int indirectSamples;
