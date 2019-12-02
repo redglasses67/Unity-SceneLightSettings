@@ -867,9 +867,20 @@ namespace SceneLightSettings
             if (doDeleteLights == true)
             {
                 var sceneLights = GameObject.FindObjectsOfType(typeof(Light)) as Light[];
-                for (var a = 0; a < sceneLights.Length; a++)
+                foreach (var sceneLight in sceneLights)
                 {
-                    Undo.DestroyObjectImmediate(sceneLights[a].gameObject);
+                    // Prefabの一部だったら削除できないので、その場合は enabled を false にする
+#if UNITY_2018_3_OR_NEWER
+                    if (PrefabUtility.IsPartOfAnyPrefab(sceneLight) == true)
+                    {
+                        sceneLight.gameObject.SetActive(false);
+                    }
+                    else
+#endif
+                    {
+
+                        Undo.DestroyObjectImmediate(sceneLight.gameObject);
+                    }
                 }
             }
 
@@ -878,7 +889,16 @@ namespace SceneLightSettings
                 var sceneLightProbeGroups = GameObject.FindObjectsOfType(typeof(LightProbeGroup)) as LightProbeGroup[];
                 foreach (var sceneLightProbeGroup in sceneLightProbeGroups)
                 {
-                    Undo.DestroyObjectImmediate(sceneLightProbeGroup.gameObject);
+#if UNITY_2018_3_OR_NEWER
+                    if (PrefabUtility.IsPartOfAnyPrefab(sceneLightProbeGroup) == true)
+                    {
+                        sceneLightProbeGroup.gameObject.SetActive(false);
+                    }
+                    else
+#endif
+                    {
+                        Undo.DestroyObjectImmediate(sceneLightProbeGroup.gameObject);
+                    }
                 }
             }
 
@@ -887,7 +907,16 @@ namespace SceneLightSettings
                 var sceneReflectionProbes = GameObject.FindObjectsOfType(typeof(ReflectionProbe)) as ReflectionProbe[];
                 foreach (var sceneReflectionProbe in sceneReflectionProbes)
                 {
-                    Undo.DestroyObjectImmediate(sceneReflectionProbe.gameObject);
+#if UNITY_2018_3_OR_NEWER
+                    if (PrefabUtility.IsPartOfAnyPrefab(sceneReflectionProbe) == true)
+                    {
+                        sceneReflectionProbe.gameObject.SetActive(false);
+                    }
+                    else
+#endif
+                    {
+                        Undo.DestroyObjectImmediate(sceneReflectionProbe.gameObject);
+                    }
                 }
             }
         }

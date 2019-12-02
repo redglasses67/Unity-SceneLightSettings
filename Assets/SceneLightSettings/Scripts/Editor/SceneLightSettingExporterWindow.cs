@@ -685,11 +685,18 @@ namespace SceneLightSettings
             }
 
             var exportDataPath = Path.Combine(exportDataFolderPath, exportDataFileName) + ".asset";
+            // if (File.Exists(exportDataPath) == true)
+            // {
+            //     exportDataPath = exportDataPath.Replace(".asset", "_1.asset");
+            // }
+            // exportDataPath = AssetDatabase.GenerateUniqueAssetPath(exportDataPath);
+
+            var wasOverwrittenTxt = "";
             if (File.Exists(exportDataPath) == true)
             {
-                exportDataPath = exportDataPath.Replace(".asset", "_1.asset");
+                wasOverwrittenTxt = (Application.systemLanguage == SystemLanguage.Japanese) ?
+                    "  ( 上書き )" : "  ( Overwritten )";
             }
-            exportDataPath = AssetDatabase.GenerateUniqueAssetPath(exportDataPath);
 
             var lightingData = SceneLightSettingExporter.GetSceneLightSettingData(
                                 doExportLightingData,
@@ -707,14 +714,17 @@ namespace SceneLightSettings
             }
 
             AssetDatabase.CreateAsset(lightingData, exportDataPath);
-            Debug.Log(message_DoneExpoted + "  :  exportDataPath = " + exportDataPath, lightingData);
 
-            var displayResult = message_DoneExpoted + "\n\nExportDataPath\n    " + exportDataPath;
+            Debug.Log(message_DoneExpoted + wasOverwrittenTxt + "  :  exportDataPath = " + exportDataPath, lightingData);
+            var displayResult = message_DoneExpoted + wasOverwrittenTxt + "\n\nExportDataPath\n    " + exportDataPath;
+
             if (lightingData.exportWarningMessages.Length > 0)
             {
                 Debug.LogWarning("Scene Light Setting Export Warnings\n" + lightingData.exportWarningMessages);
                 displayResult += "\n\nExport Warnings\n    " + lightingData.exportWarningMessages;
             }
+
+
             EditorUtility.DisplayDialog("Scene Light Setting Export / Import", displayResult, "OK");
         }
 
